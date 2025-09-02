@@ -9,6 +9,13 @@ import Login from "./pages/Login";
 import Students from "./pages/Students";
 import Grades from "./pages/Grades";
 import Attendance from "./pages/Attendance";
+import Reports from "./pages/Reports";
+import Schedule from "./pages/Schedule";
+import Payments from "./pages/Payments";
+import Library from "./pages/Library";
+import Equipment from "./pages/Equipment";
+import Statistics from "./pages/Statistics";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,13 +33,13 @@ const App = () => (
             <Route path="students" element={<Students />} />
             <Route path="grades" element={<Grades />} />
             <Route path="attendance" element={<Attendance />} />
-            <Route path="reports" element={<div className="p-6"><h1 className="text-3xl font-bold">Bulletins</h1><p className="text-muted-foreground mt-2">Module en cours de développement...</p></div>} />
-            <Route path="schedule" element={<div className="p-6"><h1 className="text-3xl font-bold">Emplois du temps</h1><p className="text-muted-foreground mt-2">Module en cours de développement...</p></div>} />
-            <Route path="payments" element={<div className="p-6"><h1 className="text-3xl font-bold">Paiements</h1><p className="text-muted-foreground mt-2">Module en cours de développement...</p></div>} />
-            <Route path="library" element={<div className="p-6"><h1 className="text-3xl font-bold">Bibliothèque</h1><p className="text-muted-foreground mt-2">Module en cours de développement...</p></div>} />
-            <Route path="equipment" element={<div className="p-6"><h1 className="text-3xl font-bold">Matériel</h1><p className="text-muted-foreground mt-2">Module en cours de développement...</p></div>} />
-            <Route path="statistics" element={<div className="p-6"><h1 className="text-3xl font-bold">Statistiques</h1><p className="text-muted-foreground mt-2">Module en cours de développement...</p></div>} />
-            <Route path="settings" element={<div className="p-6"><h1 className="text-3xl font-bold">Paramètres</h1><p className="text-muted-foreground mt-2">Module en cours de développement...</p></div>} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="schedule" element={<Schedule />} />
+            <Route path="payments" element={<Payments />} />
+            <Route path="library" element={<Library />} />
+            <Route path="equipment" element={<Equipment />} />
+            <Route path="statistics" element={<Statistics />} />
+            <Route path="settings" element={<Settings />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
