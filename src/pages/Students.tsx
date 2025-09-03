@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +28,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Search,
   Plus,
@@ -42,7 +52,10 @@ import {
   MapPin,
   Calendar,
   User,
-  Users
+  Users,
+  Upload,
+  FileDown,
+  X
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -80,8 +93,15 @@ export default function Students() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClass, setSelectedClass] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [schoolType, setSchoolType] = useState("");
   const [generatedMatricule, setGeneratedMatricule] = useState("");
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [editingStudent, setEditingStudent] = useState<any>(null);
+  const [profileImage, setProfileImage] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // État local pour stocker les étudiants
   const [students, setStudents] = useState([
@@ -100,7 +120,8 @@ export default function Students() {
       parentName: "Marie Dupont",
       parentPhone: "0123456788",
       status: "active",
-      paymentStatus: "paid"
+      paymentStatus: "paid",
+      profileImage: ""
     },
     {
       id: 2,
@@ -117,7 +138,8 @@ export default function Students() {
       parentName: "Pierre Martin",
       parentPhone: "0123456791",
       status: "active",
-      paymentStatus: "partial"
+      paymentStatus: "partial",
+      profileImage: ""
     },
     {
       id: 3,
@@ -134,7 +156,8 @@ export default function Students() {
       parentName: "Anne Bernard",
       parentPhone: "0123456793",
       status: "active",
-      paymentStatus: "pending"
+      paymentStatus: "pending",
+      profileImage: ""
     }
   ]);
 
@@ -189,7 +212,8 @@ export default function Students() {
       parentName: "Parent",
       parentPhone: "0123456798",
       status: "active",
-      paymentStatus: "pending"
+      paymentStatus: "pending",
+      profileImage: profileImage || ""
     };
     
     setStudents([...students, newStudent]);
@@ -199,6 +223,77 @@ export default function Students() {
       description: `L'élève a été ajouté avec le matricule ${generatedMatricule}.`,
     });
     setDialogOpen(false);
+    setProfileImage("");
+  };
+  
+  const handleDeleteStudent = () => {
+    if (selectedStudent) {
+      setStudents(students.filter(s => s.id !== selectedStudent.id));
+      toast({
+        title: "Élève supprimé",
+        description: `${selectedStudent.firstName} ${selectedStudent.lastName} a été supprimé.`,
+      });
+      setDeleteDialogOpen(false);
+      setSelectedStudent(null);
+    }
+  };
+
+  const handleEditStudent = () => {
+    if (editingStudent) {
+      setStudents(students.map(s => 
+        s.id === editingStudent.id ? editingStudent : s
+      ));
+      toast({
+        title: "Élève modifié",
+        description: `Les informations de ${editingStudent.firstName} ${editingStudent.lastName} ont été mises à jour.`,
+      });
+      setEditDialogOpen(false);
+      setEditingStudent(null);
+    }
+  };
+
+  const handleExport = () => {
+    const csv = [
+      ['Matricule', 'Prénom', 'Nom', 'Date de naissance', 'Classe', 'Genre', 'Email', 'Téléphone', 'Adresse', 'Parent', 'Tél Parent', 'Statut paiement'],
+      ...filteredStudents.map(s => [
+        s.matricule,
+        s.firstName,
+        s.lastName,
+        s.dateOfBirth,
+        s.class,
+        s.gender,
+        s.email,
+        s.phone,
+        s.address,
+        s.parentName,
+        s.parentPhone,
+        s.paymentStatus
+      ])
+    ];
+    
+    const csvContent = csv.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `eleves_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    
+    toast({
+      title: "Export réussi",
+      description: "La liste des élèves a été exportée en CSV.",
+    });
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
@@ -224,6 +319,37 @@ export default function Students() {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
+              {/* Photo de profil */}
+              <div className="flex justify-center">
+                <div className="relative">
+                  <Avatar className="h-24 w-24">
+                    {profileImage ? (
+                      <AvatarImage src={profileImage} />
+                    ) : (
+                      <AvatarFallback className="bg-gradient-primary text-primary-foreground">
+                        <User className="h-12 w-12" />
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="absolute bottom-0 right-0 rounded-full"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="h-4 w-4" />
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageUpload}
+                  />
+                </div>
+              </div>
+              
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="studentNumber">Numéro de l'élève</Label>
@@ -394,7 +520,7 @@ export default function Students() {
           <div className="flex items-center justify-between">
             <CardTitle>Liste des Élèves</CardTitle>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleExport}>
                 <Download className="mr-2 h-4 w-4" />
                 Exporter
               </Button>
@@ -450,9 +576,13 @@ export default function Students() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar>
-                          <AvatarFallback className="bg-gradient-primary text-primary-foreground">
-                            {student.firstName[0]}{student.lastName[0]}
-                          </AvatarFallback>
+                          {student.profileImage ? (
+                            <AvatarImage src={student.profileImage} />
+                          ) : (
+                            <AvatarFallback className="bg-gradient-primary text-primary-foreground">
+                              {student.firstName[0]}{student.lastName[0]}
+                            </AvatarFallback>
+                          )}
                         </Avatar>
                         <div>
                           <p className="font-medium">{student.firstName} {student.lastName}</p>
@@ -490,13 +620,34 @@ export default function Students() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => {
+                            setSelectedStudent(student);
+                            setViewDialogOpen(true);
+                          }}
+                        >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => {
+                            setEditingStudent({...student});
+                            setEditDialogOpen(true);
+                          }}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => {
+                            setSelectedStudent(student);
+                            setDeleteDialogOpen(true);
+                          }}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -508,6 +659,237 @@ export default function Students() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Dialog Vue élève */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Détails de l'élève</DialogTitle>
+          </DialogHeader>
+          {selectedStudent && (
+            <div className="grid gap-4 py-4">
+              <div className="flex justify-center">
+                <Avatar className="h-24 w-24">
+                  {selectedStudent.profileImage ? (
+                    <AvatarImage src={selectedStudent.profileImage} />
+                  ) : (
+                    <AvatarFallback className="bg-gradient-primary text-primary-foreground text-2xl">
+                      {selectedStudent.firstName[0]}{selectedStudent.lastName[0]}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Matricule</Label>
+                  <p className="text-sm font-medium">{selectedStudent.matricule}</p>
+                </div>
+                <div>
+                  <Label>Numéro</Label>
+                  <p className="text-sm font-medium">{selectedStudent.studentNumber}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Prénom</Label>
+                  <p className="text-sm font-medium">{selectedStudent.firstName}</p>
+                </div>
+                <div>
+                  <Label>Nom</Label>
+                  <p className="text-sm font-medium">{selectedStudent.lastName}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Date de naissance</Label>
+                  <p className="text-sm font-medium">{selectedStudent.dateOfBirth}</p>
+                </div>
+                <div>
+                  <Label>Genre</Label>
+                  <p className="text-sm font-medium">{selectedStudent.gender === 'M' ? 'Masculin' : 'Féminin'}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Classe</Label>
+                  <p className="text-sm font-medium">{selectedStudent.class}</p>
+                </div>
+                <div>
+                  <Label>Statut paiement</Label>
+                  <Badge variant={selectedStudent.paymentStatus === 'paid' ? 'default' : selectedStudent.paymentStatus === 'partial' ? 'secondary' : 'destructive'}>
+                    {selectedStudent.paymentStatus === 'paid' ? 'Payé' : selectedStudent.paymentStatus === 'partial' ? 'Partiel' : 'En attente'}
+                  </Badge>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Email</Label>
+                  <p className="text-sm font-medium">{selectedStudent.email}</p>
+                </div>
+                <div>
+                  <Label>Téléphone</Label>
+                  <p className="text-sm font-medium">{selectedStudent.phone}</p>
+                </div>
+              </div>
+              <div>
+                <Label>Adresse</Label>
+                <p className="text-sm font-medium">{selectedStudent.address}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Parent/Tuteur</Label>
+                  <p className="text-sm font-medium">{selectedStudent.parentName}</p>
+                </div>
+                <div>
+                  <Label>Téléphone parent</Label>
+                  <p className="text-sm font-medium">{selectedStudent.parentPhone}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
+              Fermer
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Édition élève */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Modifier l'élève</DialogTitle>
+          </DialogHeader>
+          {editingStudent && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Prénom</Label>
+                  <Input 
+                    value={editingStudent.firstName} 
+                    onChange={(e) => setEditingStudent({...editingStudent, firstName: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label>Nom</Label>
+                  <Input 
+                    value={editingStudent.lastName}
+                    onChange={(e) => setEditingStudent({...editingStudent, lastName: e.target.value})}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Classe</Label>
+                  <Select 
+                    value={editingStudent.class}
+                    onValueChange={(value) => setEditingStudent({...editingStudent, class: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <optgroup label="Collège">
+                        {allClasses.college.map(cls => (
+                          <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+                        ))}
+                      </optgroup>
+                      <optgroup label="Lycée">
+                        {allClasses.lycee.map(cls => (
+                          <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+                        ))}
+                      </optgroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Email</Label>
+                  <Input 
+                    type="email"
+                    value={editingStudent.email}
+                    onChange={(e) => setEditingStudent({...editingStudent, email: e.target.value})}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Téléphone</Label>
+                  <Input 
+                    value={editingStudent.phone}
+                    onChange={(e) => setEditingStudent({...editingStudent, phone: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label>Statut paiement</Label>
+                  <Select 
+                    value={editingStudent.paymentStatus}
+                    onValueChange={(value) => setEditingStudent({...editingStudent, paymentStatus: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="paid">Payé</SelectItem>
+                      <SelectItem value="partial">Partiel</SelectItem>
+                      <SelectItem value="pending">En attente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label>Adresse</Label>
+                <Input 
+                  value={editingStudent.address}
+                  onChange={(e) => setEditingStudent({...editingStudent, address: e.target.value})}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Parent/Tuteur</Label>
+                  <Input 
+                    value={editingStudent.parentName}
+                    onChange={(e) => setEditingStudent({...editingStudent, parentName: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label>Téléphone parent</Label>
+                  <Input 
+                    value={editingStudent.parentPhone}
+                    onChange={(e) => setEditingStudent({...editingStudent, parentPhone: e.target.value})}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleEditStudent} className="bg-gradient-primary">
+              Enregistrer
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Suppression élève */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. L'élève {selectedStudent?.firstName} {selectedStudent?.lastName} sera définitivement supprimé.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteStudent} className="bg-destructive text-destructive-foreground">
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
