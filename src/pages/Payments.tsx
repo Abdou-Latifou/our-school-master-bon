@@ -13,7 +13,7 @@ import { toast } from "@/hooks/use-toast";
 const Payments = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [selectedClass, setSelectedClass] = useState("");
+  const [selectedClass, setSelectedClass] = useState("all");
 
   const payments = [
     {
@@ -103,7 +103,7 @@ const Payments = () => {
     const matchesSearch = !searchTerm || 
       payment.studentName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === "all" || payment.status === filterStatus;
-    const matchesClass = !selectedClass || payment.class === selectedClass;
+    const matchesClass = selectedClass === "all" || payment.class === selectedClass;
     return matchesSearch && matchesStatus && matchesClass;
   });
 
@@ -265,7 +265,7 @@ const Payments = () => {
                   <SelectValue placeholder="Toutes les classes" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Toutes les classes</SelectItem>
+                  <SelectItem value="all">Toutes les classes</SelectItem>
                   <SelectItem value="6ème A">6ème A</SelectItem>
                   <SelectItem value="6ème B">6ème B</SelectItem>
                   <SelectItem value="5ème A">5ème A</SelectItem>
