@@ -86,8 +86,8 @@ const Reports = () => {
   };
 
   const filteredBulletins = bulletins.filter(bulletin => {
-    const matchesClass = !selectedClass || bulletin.class === selectedClass;
-    const matchesPeriod = !selectedPeriod || bulletin.period === selectedPeriod;
+    const matchesClass = !selectedClass || selectedClass === "all" || bulletin.class === selectedClass;
+    const matchesPeriod = !selectedPeriod || selectedPeriod === "all" || bulletin.period === selectedPeriod;
     const matchesSearch = !searchTerm || 
       bulletin.studentName.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesClass && matchesPeriod && matchesSearch;
@@ -175,7 +175,7 @@ const Reports = () => {
                   <SelectValue placeholder="Toutes les classes" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Toutes les classes</SelectItem>
+                  <SelectItem value="all">Toutes les classes</SelectItem>
                   <SelectItem value="6ème A">6ème A</SelectItem>
                   <SelectItem value="6ème B">6ème B</SelectItem>
                   <SelectItem value="5ème A">5ème A</SelectItem>
@@ -192,7 +192,7 @@ const Reports = () => {
                   <SelectValue placeholder="Toutes les périodes" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Toutes les périodes</SelectItem>
+                  <SelectItem value="all">Toutes les périodes</SelectItem>
                   <SelectItem value="Trimestre 1">Trimestre 1</SelectItem>
                   <SelectItem value="Trimestre 2">Trimestre 2</SelectItem>
                   <SelectItem value="Trimestre 3">Trimestre 3</SelectItem>
