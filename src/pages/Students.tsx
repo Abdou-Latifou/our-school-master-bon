@@ -102,6 +102,7 @@ export default function Students() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClass, setSelectedClass] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [schoolType, setSchoolType] = useState("");
 
   const filteredStudents = students.filter(student => {
     const matchesSearch = 
@@ -147,6 +148,16 @@ export default function Students() {
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
+                  <Label htmlFor="studentNumber">Numéro de l'élève</Label>
+                  <Input id="studentNumber" placeholder="2024001" />
+                </div>
+                <div>
+                  <Label htmlFor="matricule">Matricule</Label>
+                  <Input id="matricule" placeholder="Généré automatiquement" disabled />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
                   <Label htmlFor="firstName">Prénom</Label>
                   <Input id="firstName" placeholder="Jean" />
                 </div>
@@ -175,18 +186,57 @@ export default function Students() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="class">Classe</Label>
-                  <Select>
+                  <Label htmlFor="schoolType">Niveau scolaire</Label>
+                  <Select value={schoolType} onValueChange={setSchoolType}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une classe" />
+                      <SelectValue placeholder="Sélectionner le niveau" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="6A">6ème A</SelectItem>
-                      <SelectItem value="5B">5ème B</SelectItem>
-                      <SelectItem value="4C">4ème C</SelectItem>
-                      <SelectItem value="3A">3ème A</SelectItem>
+                      <SelectItem value="college">Collège</SelectItem>
+                      <SelectItem value="lycee">Lycée</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div>
+                  <Label htmlFor="class">Classe</Label>
+                  <Select disabled={!schoolType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={!schoolType ? "Sélectionnez d'abord le niveau" : "Sélectionner une classe"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {schoolType === 'college' ? (
+                        <>
+                          <SelectItem value="6A">6ème A</SelectItem>
+                          <SelectItem value="6B">6ème B</SelectItem>
+                          <SelectItem value="6C">6ème C</SelectItem>
+                          <SelectItem value="5A">5ème A</SelectItem>
+                          <SelectItem value="5B">5ème B</SelectItem>
+                          <SelectItem value="5C">5ème C</SelectItem>
+                          <SelectItem value="4A">4ème A</SelectItem>
+                          <SelectItem value="4B">4ème B</SelectItem>
+                          <SelectItem value="4C">4ème C</SelectItem>
+                          <SelectItem value="3A">3ème A</SelectItem>
+                          <SelectItem value="3B">3ème B</SelectItem>
+                          <SelectItem value="3C">3ème C</SelectItem>
+                        </>
+                      ) : schoolType === 'lycee' ? (
+                        <>
+                          <SelectItem value="2A4">Seconde A4</SelectItem>
+                          <SelectItem value="2CD">Seconde CD</SelectItem>
+                          <SelectItem value="1A4">1ère A4</SelectItem>
+                          <SelectItem value="1D">1ère D</SelectItem>
+                          <SelectItem value="TA4">Tle A4</SelectItem>
+                          <SelectItem value="TD">Tle D</SelectItem>
+                        </>
+                      ) : null}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="phone">Téléphone de l'élève</Label>
+                  <Input id="phone" placeholder="0123456789" />
                 </div>
                 <div>
                   <Label htmlFor="email">Email</Label>
