@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,56 +46,34 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const students = [
-  {
-    id: 1,
-    matricule: "2024001",
-    firstName: "Jean",
-    lastName: "Dupont",
-    dateOfBirth: "2008-05-15",
-    class: "3ème A",
-    gender: "M",
-    email: "jean.dupont@example.com",
-    phone: "0123456789",
-    address: "123 Rue de la République",
-    parentName: "Marie Dupont",
-    parentPhone: "0123456788",
-    status: "active",
-    paymentStatus: "paid"
-  },
-  {
-    id: 2,
-    matricule: "2024002",
-    firstName: "Sophie",
-    lastName: "Martin",
-    dateOfBirth: "2009-03-22",
-    class: "2nde B",
-    gender: "F",
-    email: "sophie.martin@example.com",
-    phone: "0123456790",
-    address: "456 Avenue des Fleurs",
-    parentName: "Pierre Martin",
-    parentPhone: "0123456791",
-    status: "active",
-    paymentStatus: "partial"
-  },
-  {
-    id: 3,
-    matricule: "2024003",
-    firstName: "Lucas",
-    lastName: "Bernard",
-    dateOfBirth: "2010-11-08",
-    class: "6ème C",
-    gender: "M",
-    email: "lucas.bernard@example.com",
-    phone: "0123456792",
-    address: "789 Boulevard Victor Hugo",
-    parentName: "Anne Bernard",
-    parentPhone: "0123456793",
-    status: "active",
-    paymentStatus: "pending"
+// Fonction pour générer un matricule unique
+const generateMatricule = (existingMatricules: string[]) => {
+  const year = new Date().getFullYear();
+  let counter = 1;
+  let matricule = `${year}${String(counter).padStart(3, '0')}`;
+  
+  while (existingMatricules.includes(matricule)) {
+    counter++;
+    matricule = `${year}${String(counter).padStart(3, '0')}`;
   }
-];
+  
+  return matricule;
+};
+
+// Classes disponibles
+const allClasses = {
+  college: [
+    "6ème A", "6ème B", "6ème C",
+    "5ème A", "5ème B", "5ème C", 
+    "4ème A", "4ème B", "4ème C",
+    "3ème A", "3ème B", "3ème C"
+  ],
+  lycee: [
+    "Seconde A4", "Seconde CD",
+    "1ère A4", "1ère D",
+    "Tle A4", "Tle D"
+  ]
+};
 
 export default function Students() {
   const { toast } = useToast();
@@ -103,6 +81,74 @@ export default function Students() {
   const [selectedClass, setSelectedClass] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [schoolType, setSchoolType] = useState("");
+  const [generatedMatricule, setGeneratedMatricule] = useState("");
+  
+  // État local pour stocker les étudiants
+  const [students, setStudents] = useState([
+    {
+      id: 1,
+      matricule: "2024001",
+      studentNumber: "001",
+      firstName: "Jean",
+      lastName: "Dupont",
+      dateOfBirth: "2008-05-15",
+      class: "3ème A",
+      gender: "M",
+      email: "jean.dupont@example.com",
+      phone: "0123456789",
+      address: "123 Rue de la République",
+      parentName: "Marie Dupont",
+      parentPhone: "0123456788",
+      status: "active",
+      paymentStatus: "paid"
+    },
+    {
+      id: 2,
+      matricule: "2024002",
+      studentNumber: "002",
+      firstName: "Sophie",
+      lastName: "Martin",
+      dateOfBirth: "2009-03-22",
+      class: "Seconde A4",
+      gender: "F",
+      email: "sophie.martin@example.com",
+      phone: "0123456790",
+      address: "456 Avenue des Fleurs",
+      parentName: "Pierre Martin",
+      parentPhone: "0123456791",
+      status: "active",
+      paymentStatus: "partial"
+    },
+    {
+      id: 3,
+      matricule: "2024003",
+      studentNumber: "003",
+      firstName: "Lucas",
+      lastName: "Bernard",
+      dateOfBirth: "2010-11-08",
+      class: "6ème C",
+      gender: "M",
+      email: "lucas.bernard@example.com",
+      phone: "0123456792",
+      address: "789 Boulevard Victor Hugo",
+      parentName: "Anne Bernard",
+      parentPhone: "0123456793",
+      status: "active",
+      paymentStatus: "pending"
+    }
+  ]);
+
+  // Générer un matricule unique lorsque le dialogue s'ouvre
+  useEffect(() => {
+    if (dialogOpen) {
+      const existingMatricules = students.map(s => s.matricule);
+      const newMatricule = generateMatricule(existingMatricules);
+      setGeneratedMatricule(newMatricule);
+    } else {
+      setGeneratedMatricule("");
+      setSchoolType("");
+    }
+  }, [dialogOpen, students]);
 
   const filteredStudents = students.filter(student => {
     const matchesSearch = 
@@ -115,10 +161,42 @@ export default function Students() {
     return matchesSearch && matchesClass;
   });
 
+  // Calculer les statistiques dynamiques
+  const stats = {
+    total: students.length,
+    boys: students.filter(s => s.gender === 'M').length,
+    girls: students.filter(s => s.gender === 'F').length,
+    new: students.filter(s => {
+      const matriculeYear = parseInt(s.matricule.substring(0, 4));
+      return matriculeYear === new Date().getFullYear();
+    }).length
+  };
+
   const handleAddStudent = () => {
+    // Simulation d'ajout d'élève (en production, cela se ferait via une API)
+    const newStudent = {
+      id: students.length + 1,
+      matricule: generatedMatricule,
+      studentNumber: String(students.length + 1).padStart(3, '0'),
+      firstName: "Nouveau",
+      lastName: "Élève",
+      dateOfBirth: "2010-01-01",
+      class: "6ème A",
+      gender: "M",
+      email: "nouveau.eleve@example.com",
+      phone: "0123456799",
+      address: "Nouvelle adresse",
+      parentName: "Parent",
+      parentPhone: "0123456798",
+      status: "active",
+      paymentStatus: "pending"
+    };
+    
+    setStudents([...students, newStudent]);
+    
     toast({
       title: "Élève ajouté",
-      description: "L'élève a été ajouté avec succès.",
+      description: `L'élève a été ajouté avec le matricule ${generatedMatricule}.`,
     });
     setDialogOpen(false);
   };
@@ -153,7 +231,7 @@ export default function Students() {
                 </div>
                 <div>
                   <Label htmlFor="matricule">Matricule</Label>
-                  <Input id="matricule" placeholder="Généré automatiquement" disabled />
+                  <Input id="matricule" value={generatedMatricule} placeholder="Généré automatiquement" disabled />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -277,8 +355,8 @@ export default function Students() {
             <CardTitle className="text-base">Total Élèves</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,248</div>
-            <p className="text-xs text-muted-foreground">+12% ce mois</p>
+            <div className="text-2xl font-bold">{stats.total}</div>
+            <p className="text-xs text-muted-foreground">Tous les élèves</p>
           </CardContent>
         </Card>
         <Card>
@@ -286,8 +364,8 @@ export default function Students() {
             <CardTitle className="text-base">Nouveaux</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">48</div>
-            <p className="text-xs text-muted-foreground">Ce trimestre</p>
+            <div className="text-2xl font-bold">{stats.new}</div>
+            <p className="text-xs text-muted-foreground">Cette année</p>
           </CardContent>
         </Card>
         <Card>
@@ -295,8 +373,8 @@ export default function Students() {
             <CardTitle className="text-base">Garçons</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">652</div>
-            <p className="text-xs text-muted-foreground">52.2% du total</p>
+            <div className="text-2xl font-bold">{stats.boys}</div>
+            <p className="text-xs text-muted-foreground">{((stats.boys / stats.total) * 100).toFixed(1)}% du total</p>
           </CardContent>
         </Card>
         <Card>
@@ -304,8 +382,8 @@ export default function Students() {
             <CardTitle className="text-base">Filles</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">596</div>
-            <p className="text-xs text-muted-foreground">47.8% du total</p>
+            <div className="text-2xl font-bold">{stats.girls}</div>
+            <p className="text-xs text-muted-foreground">{((stats.girls / stats.total) * 100).toFixed(1)}% du total</p>
           </CardContent>
         </Card>
       </div>
@@ -340,9 +418,16 @@ export default function Students() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Toutes les classes</SelectItem>
-                <SelectItem value="6ème C">6ème C</SelectItem>
-                <SelectItem value="2nde B">2nde B</SelectItem>
-                <SelectItem value="3ème A">3ème A</SelectItem>
+                <optgroup label="Collège">
+                  {allClasses.college.map(cls => (
+                    <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+                  ))}
+                </optgroup>
+                <optgroup label="Lycée">
+                  {allClasses.lycee.map(cls => (
+                    <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+                  ))}
+                </optgroup>
               </SelectContent>
             </Select>
           </div>
