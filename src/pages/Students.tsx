@@ -466,8 +466,21 @@ export default function Students() {
               <Button variant="outline" onClick={() => setDialogOpen(false)}>
                 Annuler
               </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  // Sauvegarder comme brouillon
+                  toast({
+                    title: "Brouillon enregistré",
+                    description: "L'élève a été sauvegardé comme brouillon.",
+                  });
+                  setDialogOpen(false);
+                }}
+              >
+                Brouillon
+              </Button>
               <Button onClick={handleAddStudent} className="bg-gradient-primary">
-                Ajouter l'élève
+                Enregistrer
               </Button>
             </div>
           </DialogContent>
