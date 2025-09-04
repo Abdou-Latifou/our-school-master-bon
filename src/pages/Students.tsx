@@ -92,6 +92,7 @@ export default function Students() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClass, setSelectedClass] = useState("all");
+  const [selectedLevel, setSelectedLevel] = useState("all"); // Nouveau filtre pour le niveau
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -102,6 +103,21 @@ export default function Students() {
   const [editingStudent, setEditingStudent] = useState<any>(null);
   const [profileImage, setProfileImage] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // États pour le formulaire d'ajout
+  const [formData, setFormData] = useState({
+    studentNumber: "",
+    firstName: "",
+    lastName: "",
+    dateOfBirth: "",
+    gender: "",
+    class: "",
+    phone: "",
+    email: "",
+    address: "",
+    parentName: "",
+    parentPhone: ""
+  });
   
   // État local pour stocker les étudiants
   const [students, setStudents] = useState([
@@ -181,7 +197,17 @@ export default function Students() {
     
     const matchesClass = selectedClass === "all" || student.class === selectedClass;
     
-    return matchesSearch && matchesClass;
+    // Nouveau filtre pour le niveau scolaire
+    let matchesLevel = true;
+    if (selectedLevel !== "all") {
+      if (selectedLevel === "college") {
+        matchesLevel = allClasses.college.includes(student.class);
+      } else if (selectedLevel === "lycee") {
+        matchesLevel = allClasses.lycee.includes(student.class);
+      }
+    }
+    
+    return matchesSearch && matchesClass && matchesLevel;
   });
 
   // Calculer les statistiques dynamiques
@@ -196,21 +222,21 @@ export default function Students() {
   };
 
   const handleAddStudent = () => {
-    // Simulation d'ajout d'élève (en production, cela se ferait via une API)
+    // Créer un nouvel élève avec les données du formulaire
     const newStudent = {
       id: students.length + 1,
       matricule: generatedMatricule,
-      studentNumber: String(students.length + 1).padStart(3, '0'),
-      firstName: "Nouveau",
-      lastName: "Élève",
-      dateOfBirth: "2010-01-01",
-      class: "6ème A",
-      gender: "M",
-      email: "nouveau.eleve@example.com",
-      phone: "0123456799",
-      address: "Nouvelle adresse",
-      parentName: "Parent",
-      parentPhone: "0123456798",
+      studentNumber: formData.studentNumber || String(students.length + 1).padStart(3, '0'),
+      firstName: formData.firstName || "Nouveau",
+      lastName: formData.lastName || "Élève",
+      dateOfBirth: formData.dateOfBirth || "2010-01-01",
+      class: formData.class || "6ème A",
+      gender: formData.gender || "M",
+      email: formData.email || "nouveau.eleve@example.com",
+      phone: formData.phone || "0123456799",
+      address: formData.address || "Nouvelle adresse",
+      parentName: formData.parentName || "Parent",
+      parentPhone: formData.parentPhone || "0123456798",
       status: "active",
       paymentStatus: "pending",
       profileImage: profileImage || ""
@@ -220,10 +246,26 @@ export default function Students() {
     
     toast({
       title: "Élève ajouté",
-      description: `L'élève a été ajouté avec le matricule ${generatedMatricule}.`,
+      description: `${newStudent.firstName} ${newStudent.lastName} a été ajouté avec le matricule ${generatedMatricule}.`,
     });
+    
+    // Réinitialiser le formulaire
     setDialogOpen(false);
     setProfileImage("");
+    setFormData({
+      studentNumber: "",
+      firstName: "",
+      lastName: "",
+      dateOfBirth: "",
+      gender: "",
+      class: "",
+      phone: "",
+      email: "",
+      address: "",
+      parentName: "",
+      parentPhone: ""
+    });
+    setSchoolType("");
   };
   
   const handleDeleteStudent = () => {
@@ -353,7 +395,12 @@ export default function Students() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="studentNumber">Numéro de l'élève</Label>
-                  <Input id="studentNumber" placeholder="2024001" />
+                  <Input 
+                    id="studentNumber" 
+                    placeholder="2024001"
+                    value={formData.studentNumber}
+                    onChange={(e) => setFormData({...formData, studentNumber: e.target.value})}
+                  />
                 </div>
                 <div>
                   <Label htmlFor="matricule">Matricule</Label>
@@ -363,21 +410,39 @@ export default function Students() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="firstName">Prénom</Label>
-                  <Input id="firstName" placeholder="Jean" />
+                  <Input 
+                    id="firstName" 
+                    placeholder="Jean"
+                    value={formData.firstName}
+                    onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                  />
                 </div>
                 <div>
                   <Label htmlFor="lastName">Nom</Label>
-                  <Input id="lastName" placeholder="Dupont" />
+                  <Input 
+                    id="lastName" 
+                    placeholder="Dupont"
+                    value={formData.lastName}
+                    onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="dateOfBirth">Date de naissance</Label>
-                  <Input id="dateOfBirth" type="date" />
+                  <Input 
+                    id="dateOfBirth" 
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})}
+                  />
                 </div>
                 <div>
                   <Label htmlFor="gender">Genre</Label>
-                  <Select>
+                  <Select 
+                    value={formData.gender}
+                    onValueChange={(value) => setFormData({...formData, gender: value})}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionner" />
                     </SelectTrigger>
@@ -403,34 +468,38 @@ export default function Students() {
                 </div>
                 <div>
                   <Label htmlFor="class">Classe</Label>
-                  <Select disabled={!schoolType}>
+                  <Select 
+                    disabled={!schoolType}
+                    value={formData.class}
+                    onValueChange={(value) => setFormData({...formData, class: value})}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder={!schoolType ? "Sélectionnez d'abord le niveau" : "Sélectionner une classe"} />
                     </SelectTrigger>
                     <SelectContent>
                       {schoolType === 'college' ? (
                         <>
-                          <SelectItem value="6A">6ème A</SelectItem>
-                          <SelectItem value="6B">6ème B</SelectItem>
-                          <SelectItem value="6C">6ème C</SelectItem>
-                          <SelectItem value="5A">5ème A</SelectItem>
-                          <SelectItem value="5B">5ème B</SelectItem>
-                          <SelectItem value="5C">5ème C</SelectItem>
-                          <SelectItem value="4A">4ème A</SelectItem>
-                          <SelectItem value="4B">4ème B</SelectItem>
-                          <SelectItem value="4C">4ème C</SelectItem>
-                          <SelectItem value="3A">3ème A</SelectItem>
-                          <SelectItem value="3B">3ème B</SelectItem>
-                          <SelectItem value="3C">3ème C</SelectItem>
+                          <SelectItem value="6ème A">6ème A</SelectItem>
+                          <SelectItem value="6ème B">6ème B</SelectItem>
+                          <SelectItem value="6ème C">6ème C</SelectItem>
+                          <SelectItem value="5ème A">5ème A</SelectItem>
+                          <SelectItem value="5ème B">5ème B</SelectItem>
+                          <SelectItem value="5ème C">5ème C</SelectItem>
+                          <SelectItem value="4ème A">4ème A</SelectItem>
+                          <SelectItem value="4ème B">4ème B</SelectItem>
+                          <SelectItem value="4ème C">4ème C</SelectItem>
+                          <SelectItem value="3ème A">3ème A</SelectItem>
+                          <SelectItem value="3ème B">3ème B</SelectItem>
+                          <SelectItem value="3ème C">3ème C</SelectItem>
                         </>
                       ) : schoolType === 'lycee' ? (
                         <>
-                          <SelectItem value="2A4">Seconde A4</SelectItem>
-                          <SelectItem value="2CD">Seconde CD</SelectItem>
-                          <SelectItem value="1A4">1ère A4</SelectItem>
-                          <SelectItem value="1D">1ère D</SelectItem>
-                          <SelectItem value="TA4">Tle A4</SelectItem>
-                          <SelectItem value="TD">Tle D</SelectItem>
+                          <SelectItem value="Seconde A4">Seconde A4</SelectItem>
+                          <SelectItem value="Seconde CD">Seconde CD</SelectItem>
+                          <SelectItem value="1ère A4">1ère A4</SelectItem>
+                          <SelectItem value="1ère D">1ère D</SelectItem>
+                          <SelectItem value="Tle A4">Tle A4</SelectItem>
+                          <SelectItem value="Tle D">Tle D</SelectItem>
                         </>
                       ) : null}
                     </SelectContent>
@@ -440,25 +509,51 @@ export default function Students() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="phone">Téléphone de l'élève</Label>
-                  <Input id="phone" placeholder="0123456789" />
+                  <Input 
+                    id="phone" 
+                    placeholder="0123456789"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  />
                 </div>
                 <div>
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="email@example.com" />
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    placeholder="email@example.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  />
                 </div>
               </div>
               <div>
                 <Label htmlFor="address">Adresse</Label>
-                <Input id="address" placeholder="123 Rue de la République" />
+                <Input 
+                  id="address" 
+                  placeholder="123 Rue de la République"
+                  value={formData.address}
+                  onChange={(e) => setFormData({...formData, address: e.target.value})}
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="parentName">Nom du parent/tuteur</Label>
-                  <Input id="parentName" placeholder="Marie Dupont" />
+                  <Input 
+                    id="parentName" 
+                    placeholder="Marie Dupont"
+                    value={formData.parentName}
+                    onChange={(e) => setFormData({...formData, parentName: e.target.value})}
+                  />
                 </div>
                 <div>
                   <Label htmlFor="parentPhone">Téléphone du parent</Label>
-                  <Input id="parentPhone" placeholder="0123456789" />
+                  <Input 
+                    id="parentPhone" 
+                    placeholder="0123456789"
+                    value={formData.parentPhone}
+                    onChange={(e) => setFormData({...formData, parentPhone: e.target.value})}
+                  />
                 </div>
               </div>
             </div>
@@ -551,22 +646,38 @@ export default function Students() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+            <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Toutes les classes" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes les classes</SelectItem>
+                <SelectItem value="college">Collège</SelectItem>
+                <SelectItem value="lycee">Lycée</SelectItem>
+              </SelectContent>
+            </Select>
             <Select value={selectedClass} onValueChange={setSelectedClass}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Filtrer par classe" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Toutes les classes</SelectItem>
-                <optgroup label="Collège">
-                  {allClasses.college.map(cls => (
-                    <SelectItem key={cls} value={cls}>{cls}</SelectItem>
-                  ))}
-                </optgroup>
-                <optgroup label="Lycée">
-                  {allClasses.lycee.map(cls => (
-                    <SelectItem key={cls} value={cls}>{cls}</SelectItem>
-                  ))}
-                </optgroup>
+                {selectedLevel === "college" || selectedLevel === "all" ? (
+                  <>
+                    <div className="text-xs font-semibold px-2 py-1 text-muted-foreground">Collège</div>
+                    {allClasses.college.map(cls => (
+                      <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+                    ))}
+                  </>
+                ) : null}
+                {selectedLevel === "lycee" || selectedLevel === "all" ? (
+                  <>
+                    <div className="text-xs font-semibold px-2 py-1 text-muted-foreground">Lycée</div>
+                    {allClasses.lycee.map(cls => (
+                      <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+                    ))}
+                  </>
+                ) : null}
               </SelectContent>
             </Select>
           </div>
