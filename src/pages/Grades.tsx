@@ -32,9 +32,22 @@ import {
   Award,
   BookOpen,
   Edit3,
-  FileDown
+  FileDown,
+  Eye,
+  BarChart3,
+  Users,
+  UserPlus
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const subjects = [
   { id: 1, name: "Mathématiques", coefficient: 4 },
@@ -97,6 +110,39 @@ export default function Grades() {
   const [selectedPeriod, setSelectedPeriod] = useState("trimestre1");
   const [editMode, setEditMode] = useState(false);
   const [studentGrades, setStudentGrades] = useState(initialStudentGrades);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [addStudentDialog, setAddStudentDialog] = useState(false);
+  
+  // Récupérer les élèves depuis localStorage (synchronisation avec la page Élèves)
+  useEffect(() => {
+    const storedStudents = localStorage.getItem('students');
+    if (storedStudents) {
+      const students = JSON.parse(storedStudents);
+      // Fusionner avec les notes existantes ou créer de nouvelles entrées
+      const updatedGrades = students.map((student: any) => {
+        const existingGrade = studentGrades.find(g => g.matricule === student.matricule);
+        if (existingGrade) {
+          return existingGrade;
+        }
+        // Créer une nouvelle entrée pour l'élève avec des notes vides
+        return {
+          id: student.id,
+          studentName: `${student.prenom} ${student.nom}`,
+          matricule: student.matricule,
+          class: student.classe,
+          grades: {
+            math: { note1: 0, note2: 0, note3: 0, exam: 0 },
+            french: { note1: 0, note2: 0, note3: 0, exam: 0 },
+            physics: { note1: 0, note2: 0, note3: 0, exam: 0 },
+            history: { note1: 0, note2: 0, note3: 0, exam: 0 },
+            english: { note1: 0, note2: 0, note3: 0, exam: 0 },
+            svt: { note1: 0, note2: 0, note3: 0, exam: 0 }
+          }
+        };
+      });
+      setStudentGrades(updatedGrades);
+    }
+  }, []);
 
   // Calculate moyenne for each subject
   const calculateMoyenne = (notes: any) => {
@@ -157,7 +203,7 @@ export default function Grades() {
     studentGrades.forEach(student => {
       Object.entries(student.grades).forEach(([subject, grades]: [string, any]) => {
         Object.values(grades).forEach((grade: any) => {
-          if (typeof grade === 'number') {
+          if (typeof grade === 'number' && grade > 0) {
             allGrades.push(grade);
             totalNotes++;
             if (grade > bestGrade) {
@@ -189,6 +235,7 @@ export default function Grades() {
   }, [studentGrades]);
 
   const handleSaveGrades = () => {
+    localStorage.setItem('studentGrades', JSON.stringify(studentGrades));
     toast({
       title: "Notes enregistrées",
       description: "Les notes ont été sauvegardées avec succès.",
@@ -197,7 +244,6 @@ export default function Grades() {
   };
 
   const handleImport = () => {
-    // File input logic
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.csv,.xlsx';
@@ -208,7 +254,6 @@ export default function Grades() {
           title: "Import en cours",
           description: `Importation du fichier ${file.name}...`,
         });
-        // Here you would implement actual file parsing logic
       }
     };
     input.click();
@@ -220,6 +265,48 @@ export default function Grades() {
       title: "Mode édition activé",
       description: "Vous pouvez maintenant saisir de nouvelles notes.",
     });
+  };
+
+  const handleAddStudent = () => {
+    setAddStudentDialog(true);
+  };
+
+  const syncWithStudents = () => {
+    const storedStudents = localStorage.getItem('students');
+    if (storedStudents) {
+      const students = JSON.parse(storedStudents);
+      const newStudents = students.filter((student: any) => 
+        !studentGrades.find(g => g.matricule === student.matricule)
+      );
+      
+      if (newStudents.length > 0) {
+        const newGrades = newStudents.map((student: any) => ({
+          id: studentGrades.length + student.id,
+          studentName: `${student.prenom} ${student.nom}`,
+          matricule: student.matricule,
+          class: student.classe,
+          grades: {
+            math: { note1: 0, note2: 0, note3: 0, exam: 0 },
+            french: { note1: 0, note2: 0, note3: 0, exam: 0 },
+            physics: { note1: 0, note2: 0, note3: 0, exam: 0 },
+            history: { note1: 0, note2: 0, note3: 0, exam: 0 },
+            english: { note1: 0, note2: 0, note3: 0, exam: 0 },
+            svt: { note1: 0, note2: 0, note3: 0, exam: 0 }
+          }
+        }));
+        
+        setStudentGrades([...studentGrades, ...newGrades]);
+        toast({
+          title: "Synchronisation réussie",
+          description: `${newGrades.length} nouveaux élèves ajoutés.`,
+        });
+      } else {
+        toast({
+          title: "Déjà à jour",
+          description: "Tous les élèves sont déjà synchronisés.",
+        });
+      }
+    }
   };
 
   const getGradeColor = (grade: number) => {
@@ -237,6 +324,50 @@ export default function Grades() {
     return { label: "Insuffisant", variant: "destructive" };
   };
 
+  // Filtrer les élèves selon la classe sélectionnée
+  const filteredStudents = studentGrades.filter(student => 
+    selectedClass === "all" || student.class === selectedClass
+  );
+
+  // Statistiques par matière
+  const subjectStats = useMemo(() => {
+    const stats: Record<string, { moyenne: number, success: number, total: number }> = {};
+    
+    subjects.forEach(subject => {
+      const subjectKey = subject.name.toLowerCase()
+        .replace('mathématiques', 'math')
+        .replace('français', 'french')
+        .replace('physique-chimie', 'physics')
+        .replace('histoire-géo', 'history')
+        .replace('anglais', 'english')
+        .replace('svt', 'svt');
+      
+      let total = 0;
+      let sum = 0;
+      let passCount = 0;
+      
+      filteredStudents.forEach(student => {
+        const grades = student.grades[subjectKey as keyof typeof student.grades];
+        if (grades) {
+          const moyenne = parseFloat(calculateMoyenne(grades));
+          if (moyenne > 0) {
+            sum += moyenne;
+            total++;
+            if (moyenne >= 10) passCount++;
+          }
+        }
+      });
+      
+      stats[subject.name] = {
+        moyenne: total > 0 ? sum / total : 0,
+        success: total > 0 ? (passCount / total) * 100 : 0,
+        total
+      };
+    });
+    
+    return stats;
+  }, [filteredStudents]);
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -246,6 +377,10 @@ export default function Grades() {
           <p className="text-muted-foreground">Saisie et suivi des performances scolaires</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={syncWithStudents}>
+            <Users className="mr-2 h-4 w-4" />
+            Synchroniser Élèves
+          </Button>
           <Button variant="outline" onClick={handleImport}>
             <Upload className="mr-2 h-4 w-4" />
             Importer
@@ -331,6 +466,7 @@ export default function Grades() {
                     <SelectValue placeholder="Sélectionner une classe" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="all">Toutes les classes</SelectItem>
                     <SelectItem value="3ème A">3ème A</SelectItem>
                     <SelectItem value="3ème B">3ème B</SelectItem>
                     <SelectItem value="2nde A">2nde A</SelectItem>
@@ -386,7 +522,7 @@ export default function Grades() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {studentGrades.map((student) => (
+                    {filteredStudents.map((student) => (
                       <TableRow key={student.id}>
                         <TableCell>
                           <div>
@@ -466,13 +602,10 @@ export default function Grades() {
                         </TableCell>
                         <TableCell>
                           {(() => {
-                            const moyenne = parseFloat(calculateMoyenne(student.grades.math));
-                            const appreciation = getAppreciationBadge(moyenne);
+                            const moyenneNum = parseFloat(calculateMoyenne(student.grades.math));
+                            const appreciation = getAppreciationBadge(moyenneNum);
                             return (
-                              <Badge 
-                                variant={appreciation.variant as any}
-                                className={appreciation.className}
-                              >
+                              <Badge className={appreciation.className}>
                                 {appreciation.label}
                               </Badge>
                             );
@@ -484,11 +617,9 @@ export default function Grades() {
                 </Table>
               </div>
 
+              {/* Save Button */}
               {editMode && (
-                <div className="flex justify-end gap-2 mt-4">
-                  <Button variant="outline" onClick={() => setEditMode(false)}>
-                    Annuler
-                  </Button>
+                <div className="flex justify-end mt-4">
                   <Button onClick={handleSaveGrades} className="bg-gradient-primary">
                     <Save className="mr-2 h-4 w-4" />
                     Enregistrer les Notes
@@ -499,26 +630,249 @@ export default function Grades() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="consultation">
+        <TabsContent value="consultation" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Consultation des Notes</CardTitle>
-              <CardDescription>Vue d'ensemble des performances par élève</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Eye className="h-5 w-5" />
+                Consultation des Notes
+              </CardTitle>
+              <CardDescription>Visualisez les notes par élève et par matière</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Fonctionnalité en cours de développement...</p>
+              <div className="mb-4">
+                <Input 
+                  placeholder="Rechercher un élève..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="max-w-sm"
+                />
+              </div>
+              
+              <div className="space-y-4">
+                {filteredStudents
+                  .filter(student => 
+                    searchTerm === "" || 
+                    student.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    student.matricule.includes(searchTerm)
+                  )
+                  .map(student => (
+                    <Card key={student.id}>
+                      <CardHeader className="pb-3">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <CardTitle className="text-lg">{student.studentName}</CardTitle>
+                            <p className="text-sm text-muted-foreground">
+                              {student.matricule} • {student.class}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-muted-foreground">Moyenne Générale</p>
+                            <p className="text-2xl font-bold">
+                              {calculateMoyenneGenerale(student.grades)}/20
+                            </p>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {Object.entries(student.grades).map(([subject, grades]) => {
+                            const subjectName = subject === 'math' ? 'Mathématiques' :
+                                              subject === 'french' ? 'Français' :
+                                              subject === 'physics' ? 'Physique-Chimie' :
+                                              subject === 'history' ? 'Histoire-Géo' :
+                                              subject === 'english' ? 'Anglais' : 'SVT';
+                            const moyenne = parseFloat(calculateMoyenne(grades));
+                            return (
+                              <div key={subject} className="space-y-1">
+                                <p className="text-sm font-medium">{subjectName}</p>
+                                <p className={`text-lg font-bold ${getGradeColor(moyenne)}`}>
+                                  {moyenne}/20
+                                </p>
+                                <Progress value={moyenne * 5} className="h-2" />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="statistiques">
+        <TabsContent value="statistiques" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Statistiques par Matière
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {subjects.map(subject => {
+                    const stats = subjectStats[subject.name];
+                    return (
+                      <div key={subject.id} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium">{subject.name}</span>
+                          <span className="text-sm text-muted-foreground">
+                            Coef. {subject.coefficient}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="flex-1">
+                            <Progress value={stats.moyenne * 5} className="h-2" />
+                          </div>
+                          <span className={`font-bold ${getGradeColor(stats.moyenne)}`}>
+                            {stats.moyenne.toFixed(1)}/20
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>{stats.total} notes</span>
+                          <span>Réussite: {stats.success.toFixed(0)}%</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Répartition des Notes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Excellent (16-20)</span>
+                      <span className="font-bold">
+                        {filteredStudents.filter(s => parseFloat(calculateMoyenneGenerale(s.grades)) >= 16).length}
+                      </span>
+                    </div>
+                    <Progress 
+                      value={(filteredStudents.filter(s => parseFloat(calculateMoyenneGenerale(s.grades)) >= 16).length / filteredStudents.length) * 100} 
+                      className="h-2"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Très Bien (14-16)</span>
+                      <span className="font-bold">
+                        {filteredStudents.filter(s => {
+                          const m = parseFloat(calculateMoyenneGenerale(s.grades));
+                          return m >= 14 && m < 16;
+                        }).length}
+                      </span>
+                    </div>
+                    <Progress 
+                      value={(filteredStudents.filter(s => {
+                        const m = parseFloat(calculateMoyenneGenerale(s.grades));
+                        return m >= 14 && m < 16;
+                      }).length / filteredStudents.length) * 100} 
+                      className="h-2"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Bien (12-14)</span>
+                      <span className="font-bold">
+                        {filteredStudents.filter(s => {
+                          const m = parseFloat(calculateMoyenneGenerale(s.grades));
+                          return m >= 12 && m < 14;
+                        }).length}
+                      </span>
+                    </div>
+                    <Progress 
+                      value={(filteredStudents.filter(s => {
+                        const m = parseFloat(calculateMoyenneGenerale(s.grades));
+                        return m >= 12 && m < 14;
+                      }).length / filteredStudents.length) * 100} 
+                      className="h-2"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Passable (10-12)</span>
+                      <span className="font-bold">
+                        {filteredStudents.filter(s => {
+                          const m = parseFloat(calculateMoyenneGenerale(s.grades));
+                          return m >= 10 && m < 12;
+                        }).length}
+                      </span>
+                    </div>
+                    <Progress 
+                      value={(filteredStudents.filter(s => {
+                        const m = parseFloat(calculateMoyenneGenerale(s.grades));
+                        return m >= 10 && m < 12;
+                      }).length / filteredStudents.length) * 100} 
+                      className="h-2"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span>Insuffisant (&lt;10)</span>
+                      <span className="font-bold">
+                        {filteredStudents.filter(s => parseFloat(calculateMoyenneGenerale(s.grades)) < 10).length}
+                      </span>
+                    </div>
+                    <Progress 
+                      value={(filteredStudents.filter(s => parseFloat(calculateMoyenneGenerale(s.grades)) < 10).length / filteredStudents.length) * 100} 
+                      className="h-2"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           <Card>
             <CardHeader>
-              <CardTitle>Statistiques</CardTitle>
-              <CardDescription>Analyse des performances de la classe</CardDescription>
+              <CardTitle>Top 10 des Élèves</CardTitle>
+              <CardDescription>Classement selon la moyenne générale</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">Fonctionnalité en cours de développement...</p>
+              <div className="space-y-2">
+                {filteredStudents
+                  .sort((a, b) => parseFloat(calculateMoyenneGenerale(b.grades)) - parseFloat(calculateMoyenneGenerale(a.grades)))
+                  .slice(0, 10)
+                  .map((student, index) => (
+                    <div key={student.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
+                          index === 0 ? 'bg-yellow-500 text-white' :
+                          index === 1 ? 'bg-gray-400 text-white' :
+                          index === 2 ? 'bg-orange-600 text-white' :
+                          'bg-muted'
+                        }`}>
+                          {index + 1}
+                        </div>
+                        <div>
+                          <p className="font-medium">{student.studentName}</p>
+                          <p className="text-sm text-muted-foreground">{student.class}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-lg">
+                          {calculateMoyenneGenerale(student.grades)}/20
+                        </p>
+                        {(() => {
+                          const appreciation = getAppreciationBadge(parseFloat(calculateMoyenneGenerale(student.grades)));
+                          return (
+                            <Badge className={appreciation.className}>
+                              {appreciation.label}
+                            </Badge>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  ))}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
