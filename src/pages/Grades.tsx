@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +31,8 @@ import {
   TrendingUp,
   Award,
   BookOpen,
-  Edit3
+  Edit3,
+  FileDown
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -44,23 +45,20 @@ const subjects = [
   { id: 6, name: "SVT", coefficient: 2 }
 ];
 
-const studentGrades = [
+const initialStudentGrades = [
   {
     id: 1,
     studentName: "Jean Dupont",
     matricule: "2024001",
     class: "3ème A",
     grades: {
-      math: { note1: 15, note2: 16, note3: 14, exam: 15.5, moyenne: 15.1 },
-      french: { note1: 12, note2: 13, note3: 14, exam: 13, moyenne: 13 },
-      physics: { note1: 16, note2: 17, note3: 15, exam: 16, moyenne: 16 },
-      history: { note1: 14, note2: 15, note3: 13, exam: 14, moyenne: 14 },
-      english: { note1: 13, note2: 12, note3: 14, exam: 13.5, moyenne: 13.1 },
-      svt: { note1: 15, note2: 16, note3: 15, exam: 15, moyenne: 15.2 }
-    },
-    moyenneGenerale: 14.8,
-    rang: 3,
-    appreciation: "Très bon trimestre"
+      math: { note1: 15, note2: 16, note3: 14, exam: 15.5 },
+      french: { note1: 12, note2: 13, note3: 14, exam: 13 },
+      physics: { note1: 16, note2: 17, note3: 15, exam: 16 },
+      history: { note1: 14, note2: 15, note3: 13, exam: 14 },
+      english: { note1: 13, note2: 12, note3: 14, exam: 13.5 },
+      svt: { note1: 15, note2: 16, note3: 15, exam: 15 }
+    }
   },
   {
     id: 2,
@@ -68,16 +66,27 @@ const studentGrades = [
     matricule: "2024002",
     class: "3ème A",
     grades: {
-      math: { note1: 17, note2: 18, note3: 16, exam: 17.5, moyenne: 17.1 },
-      french: { note1: 15, note2: 16, note3: 14, exam: 15, moyenne: 15 },
-      physics: { note1: 18, note2: 17, note3: 19, exam: 18, moyenne: 18 },
-      history: { note1: 16, note2: 15, note3: 17, exam: 16, moyenne: 16 },
-      english: { note1: 14, note2: 15, note3: 13, exam: 14, moyenne: 14 },
-      svt: { note1: 17, note2: 16, note3: 18, exam: 17, moyenne: 17.2 }
-    },
-    moyenneGenerale: 16.5,
-    rang: 1,
-    appreciation: "Excellent travail"
+      math: { note1: 17, note2: 18, note3: 16, exam: 17.5 },
+      french: { note1: 15, note2: 16, note3: 14, exam: 15 },
+      physics: { note1: 18, note2: 17, note3: 19, exam: 18 },
+      history: { note1: 16, note2: 15, note3: 17, exam: 16 },
+      english: { note1: 14, note2: 15, note3: 13, exam: 14 },
+      svt: { note1: 17, note2: 16, note3: 18, exam: 17 }
+    }
+  },
+  {
+    id: 3,
+    studentName: "Marie Leblanc",
+    matricule: "2024003",
+    class: "3ème B",
+    grades: {
+      math: { note1: 13, note2: 14, note3: 12, exam: 13.5 },
+      french: { note1: 16, note2: 17, note3: 15, exam: 16 },
+      physics: { note1: 14, note2: 13, note3: 15, exam: 14 },
+      history: { note1: 15, note2: 16, note3: 14, exam: 15 },
+      english: { note1: 17, note2: 18, note3: 16, exam: 17 },
+      svt: { note1: 13, note2: 14, note3: 13, exam: 13.5 }
+    }
   }
 ];
 
@@ -87,6 +96,97 @@ export default function Grades() {
   const [selectedSubject, setSelectedSubject] = useState("all");
   const [selectedPeriod, setSelectedPeriod] = useState("trimestre1");
   const [editMode, setEditMode] = useState(false);
+  const [studentGrades, setStudentGrades] = useState(initialStudentGrades);
+
+  // Calculate moyenne for each subject
+  const calculateMoyenne = (notes: any) => {
+    const { note1, note2, note3, exam } = notes;
+    return ((note1 + note2 + note3 + exam * 2) / 5).toFixed(1);
+  };
+
+  // Calculate moyenne générale for a student
+  const calculateMoyenneGenerale = (grades: any) => {
+    const coefficients: Record<string, number> = {
+      math: 4,
+      french: 3,
+      physics: 3,
+      history: 2,
+      english: 2,
+      svt: 2
+    };
+    
+    let totalPoints = 0;
+    let totalCoeff = 0;
+    
+    Object.entries(grades).forEach(([subject, notes]: [string, any]) => {
+      const moyenne = parseFloat(calculateMoyenne(notes));
+      totalPoints += moyenne * (coefficients[subject] || 1);
+      totalCoeff += coefficients[subject] || 1;
+    });
+    
+    return (totalPoints / totalCoeff).toFixed(1);
+  };
+
+  // Update grade for a specific student and subject
+  const updateGrade = (studentId: number, subject: string, noteType: string, value: number) => {
+    setStudentGrades(prev => prev.map(student => {
+      if (student.id === studentId) {
+        const updatedGrades = {
+          ...student.grades,
+          [subject]: {
+            ...student.grades[subject as keyof typeof student.grades],
+            [noteType]: value
+          }
+        };
+        return {
+          ...student,
+          grades: updatedGrades
+        };
+      }
+      return student;
+    }));
+  };
+
+  // Calculate statistics
+  const statistics = useMemo(() => {
+    const allGrades: number[] = [];
+    let totalNotes = 0;
+    let bestGrade = 0;
+    let bestSubject = "";
+    
+    studentGrades.forEach(student => {
+      Object.entries(student.grades).forEach(([subject, grades]: [string, any]) => {
+        Object.values(grades).forEach((grade: any) => {
+          if (typeof grade === 'number') {
+            allGrades.push(grade);
+            totalNotes++;
+            if (grade > bestGrade) {
+              bestGrade = grade;
+              bestSubject = subject === 'math' ? 'Mathématiques' :
+                          subject === 'french' ? 'Français' :
+                          subject === 'physics' ? 'Physique-Chimie' :
+                          subject === 'history' ? 'Histoire-Géo' :
+                          subject === 'english' ? 'Anglais' : 'SVT';
+            }
+          }
+        });
+      });
+    });
+    
+    const moyenneGenerale = allGrades.length > 0 ? 
+      (allGrades.reduce((a, b) => a + b, 0) / allGrades.length).toFixed(1) : '0';
+    
+    const successRate = allGrades.length > 0 ?
+      Math.round((allGrades.filter(g => g >= 10).length / allGrades.length) * 100) : 0;
+    
+    return {
+      moyenneGenerale,
+      bestGrade,
+      bestSubject,
+      totalNotes,
+      successRate
+    };
+  }, [studentGrades]);
 
   const handleSaveGrades = () => {
     toast({
@@ -94,6 +194,32 @@ export default function Grades() {
       description: "Les notes ont été sauvegardées avec succès.",
     });
     setEditMode(false);
+  };
+
+  const handleImport = () => {
+    // File input logic
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv,.xlsx';
+    input.onchange = (e: any) => {
+      const file = e.target.files[0];
+      if (file) {
+        toast({
+          title: "Import en cours",
+          description: `Importation du fichier ${file.name}...`,
+        });
+        // Here you would implement actual file parsing logic
+      }
+    };
+    input.click();
+  };
+
+  const handleNewEntry = () => {
+    setEditMode(true);
+    toast({
+      title: "Mode édition activé",
+      description: "Vous pouvez maintenant saisir de nouvelles notes.",
+    });
   };
 
   const getGradeColor = (grade: number) => {
@@ -120,11 +246,11 @@ export default function Grades() {
           <p className="text-muted-foreground">Saisie et suivi des performances scolaires</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleImport}>
             <Upload className="mr-2 h-4 w-4" />
             Importer
           </Button>
-          <Button className="bg-gradient-primary">
+          <Button className="bg-gradient-primary" onClick={handleNewEntry}>
             <Plus className="mr-2 h-4 w-4" />
             Nouvelle Saisie
           </Button>
@@ -141,8 +267,8 @@ export default function Grades() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">14.2/20</div>
-            <Progress value={71} className="mt-2" />
+            <div className="text-2xl font-bold">{statistics.moyenneGenerale}/20</div>
+            <Progress value={parseFloat(statistics.moyenneGenerale) * 5} className="mt-2" />
           </CardContent>
         </Card>
         <Card>
@@ -153,8 +279,8 @@ export default function Grades() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">19/20</div>
-            <p className="text-xs text-muted-foreground">Physique-Chimie</p>
+            <div className="text-2xl font-bold">{statistics.bestGrade}/20</div>
+            <p className="text-xs text-muted-foreground">{statistics.bestSubject}</p>
           </CardContent>
         </Card>
         <Card>
@@ -165,7 +291,7 @@ export default function Grades() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">432</div>
+            <div className="text-2xl font-bold">{statistics.totalNotes}</div>
             <p className="text-xs text-muted-foreground">Ce trimestre</p>
           </CardContent>
         </Card>
@@ -177,7 +303,7 @@ export default function Grades() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">87%</div>
+            <div className="text-2xl font-bold">{statistics.successRate}%</div>
             <p className="text-xs text-muted-foreground">≥ 10/20</p>
           </CardContent>
         </Card>
@@ -276,6 +402,7 @@ export default function Grades() {
                               className="w-16 mx-auto"
                               min="0"
                               max="20"
+                              onChange={(e) => updateGrade(student.id, 'math', 'note1', parseFloat(e.target.value) || 0)}
                             />
                           ) : (
                             <span className={getGradeColor(student.grades.math.note1)}>
@@ -291,6 +418,7 @@ export default function Grades() {
                               className="w-16 mx-auto"
                               min="0"
                               max="20"
+                              onChange={(e) => updateGrade(student.id, 'math', 'note2', parseFloat(e.target.value) || 0)}
                             />
                           ) : (
                             <span className={getGradeColor(student.grades.math.note2)}>
@@ -306,6 +434,7 @@ export default function Grades() {
                               className="w-16 mx-auto"
                               min="0"
                               max="20"
+                              onChange={(e) => updateGrade(student.id, 'math', 'note3', parseFloat(e.target.value) || 0)}
                             />
                           ) : (
                             <span className={getGradeColor(student.grades.math.note3)}>
@@ -322,6 +451,7 @@ export default function Grades() {
                               min="0"
                               max="20"
                               step="0.5"
+                              onChange={(e) => updateGrade(student.id, 'math', 'exam', parseFloat(e.target.value) || 0)}
                             />
                           ) : (
                             <span className={`font-bold ${getGradeColor(student.grades.math.exam)}`}>
@@ -330,13 +460,14 @@ export default function Grades() {
                           )}
                         </TableCell>
                         <TableCell className="text-center">
-                          <span className={`font-bold ${getGradeColor(student.grades.math.moyenne)}`}>
-                            {student.grades.math.moyenne}
+                          <span className={`font-bold ${getGradeColor(parseFloat(calculateMoyenne(student.grades.math)))}`}>
+                            {calculateMoyenne(student.grades.math)}
                           </span>
                         </TableCell>
                         <TableCell>
                           {(() => {
-                            const appreciation = getAppreciationBadge(student.grades.math.moyenne);
+                            const moyenne = parseFloat(calculateMoyenne(student.grades.math));
+                            const appreciation = getAppreciationBadge(moyenne);
                             return (
                               <Badge 
                                 variant={appreciation.variant as any}
