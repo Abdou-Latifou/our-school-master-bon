@@ -280,9 +280,25 @@ export default function Grades() {
 
   const handleNewEntry = () => {
     setEditMode(true);
+    
+    // Réinitialiser les notes à 0 pour permettre une nouvelle saisie
+    const resetGrades = studentGrades.map(student => ({
+      ...student,
+      grades: {
+        math: { note1: 0, note2: 0, note3: 0, exam: 0 },
+        french: { note1: 0, note2: 0, note3: 0, exam: 0 },
+        physics: { note1: 0, note2: 0, note3: 0, exam: 0 },
+        history: { note1: 0, note2: 0, note3: 0, exam: 0 },
+        english: { note1: 0, note2: 0, note3: 0, exam: 0 },
+        svt: { note1: 0, note2: 0, note3: 0, exam: 0 }
+      }
+    }));
+    
+    setStudentGrades(resetGrades);
+    
     toast({
-      title: "Mode édition activé",
-      description: "Vous pouvez maintenant saisir de nouvelles notes.",
+      title: "Nouvelle saisie",
+      description: "Les notes ont été réinitialisées. Vous pouvez maintenant saisir de nouvelles notes.",
     });
   };
 
