@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Search,
   Plus,
@@ -36,7 +37,9 @@ import {
   Eye,
   BarChart3,
   Users,
-  UserPlus
+  UserPlus,
+  School,
+  Building2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -57,6 +60,21 @@ const subjects = [
   { id: 5, name: "Anglais", coefficient: 2 },
   { id: 6, name: "SVT", coefficient: 2 }
 ];
+
+// Classes disponibles (synchronized with Students page)
+const allClasses = {
+  college: [
+    "6ème A", "6ème B", "6ème C",
+    "5ème A", "5ème B", "5ème C", 
+    "4ème A", "4ème B", "4ème C",
+    "3ème A", "3ème B", "3ème C"
+  ],
+  lycee: [
+    "Seconde A4", "Seconde CD",
+    "1ère A4", "1ère D",
+    "Tle A4", "Tle D"
+  ]
+};
 
 const initialStudentGrades = [
   {
@@ -105,7 +123,8 @@ const initialStudentGrades = [
 
 export default function Grades() {
   const { toast } = useToast();
-  const [selectedClass, setSelectedClass] = useState("3ème A");
+  const [schoolLevel, setSchoolLevel] = useState<"college" | "lycee">("college");
+  const [selectedClass, setSelectedClass] = useState("6ème A");
   const [selectedSubject, setSelectedSubject] = useState("all");
   const [selectedPeriod, setSelectedPeriod] = useState("trimestre1");
   const [editMode, setEditMode] = useState(false);
@@ -365,10 +384,16 @@ export default function Grades() {
     return { label: "Insuffisant", variant: "destructive" };
   };
 
-  // Filtrer les élèves selon la classe sélectionnée
-  const filteredStudents = studentGrades.filter(student => 
-    selectedClass === "all" || student.class === selectedClass
-  );
+  // Filtrer les élèves selon le niveau scolaire et la classe sélectionnée
+  const filteredStudents = studentGrades.filter(student => {
+    // Vérifier le niveau scolaire
+    const isInSelectedLevel = allClasses[schoolLevel].includes(student.class);
+    
+    // Vérifier la classe spécifique
+    const matchesClass = selectedClass === "all" || student.class === selectedClass;
+    
+    return isInSelectedLevel && matchesClass;
+  });
 
   // Statistiques par matière
   const subjectStats = useMemo(() => {
@@ -500,6 +525,31 @@ export default function Grades() {
               <CardDescription>Entrez les notes pour la classe et la matière sélectionnées</CardDescription>
             </CardHeader>
             <CardContent>
+              {/* School Level Selector */}
+              <div className="mb-6 flex justify-center">
+                <ToggleGroup 
+                  type="single" 
+                  value={schoolLevel} 
+                  onValueChange={(value) => {
+                    if (value) {
+                      setSchoolLevel(value as "college" | "lycee");
+                      // Reset selected class when changing level
+                      setSelectedClass(value === "college" ? "6ème A" : "Seconde A4");
+                    }
+                  }}
+                  className="bg-muted rounded-lg p-1"
+                >
+                  <ToggleGroupItem value="college" className="px-6">
+                    <Building2 className="mr-2 h-4 w-4" />
+                    Collège
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="lycee" className="px-6">
+                    <School className="mr-2 h-4 w-4" />
+                    Lycée
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+
               {/* Filters */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <Select value={selectedClass} onValueChange={setSelectedClass}>
@@ -508,9 +558,11 @@ export default function Grades() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Toutes les classes</SelectItem>
-                    <SelectItem value="3ème A">3ème A</SelectItem>
-                    <SelectItem value="3ème B">3ème B</SelectItem>
-                    <SelectItem value="2nde A">2nde A</SelectItem>
+                    {allClasses[schoolLevel].map(className => (
+                      <SelectItem key={className} value={className}>
+                        {className}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 
@@ -681,6 +733,30 @@ export default function Grades() {
               <CardDescription>Visualisez les notes par élève et par matière</CardDescription>
             </CardHeader>
             <CardContent>
+              {/* School Level Selector */}
+              <div className="mb-4 flex justify-center">
+                <ToggleGroup 
+                  type="single" 
+                  value={schoolLevel} 
+                  onValueChange={(value) => {
+                    if (value) {
+                      setSchoolLevel(value as "college" | "lycee");
+                      setSelectedClass("all");
+                    }
+                  }}
+                  className="bg-muted rounded-lg p-1"
+                >
+                  <ToggleGroupItem value="college" className="px-6">
+                    <Building2 className="mr-2 h-4 w-4" />
+                    Collège
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="lycee" className="px-6">
+                    <School className="mr-2 h-4 w-4" />
+                    Lycée
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+
               <div className="mb-4">
                 <Input 
                   placeholder="Rechercher un élève..." 
@@ -744,6 +820,30 @@ export default function Grades() {
         </TabsContent>
 
         <TabsContent value="statistiques" className="space-y-4">
+          {/* School Level Selector */}
+          <div className="mb-4 flex justify-center">
+            <ToggleGroup 
+              type="single" 
+              value={schoolLevel} 
+              onValueChange={(value) => {
+                if (value) {
+                  setSchoolLevel(value as "college" | "lycee");
+                  setSelectedClass("all");
+                }
+              }}
+              className="bg-muted rounded-lg p-1"
+            >
+              <ToggleGroupItem value="college" className="px-6">
+                <Building2 className="mr-2 h-4 w-4" />
+                Collège
+              </ToggleGroupItem>
+              <ToggleGroupItem value="lycee" className="px-6">
+                <School className="mr-2 h-4 w-4" />
+                Lycée
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
               <CardHeader>
