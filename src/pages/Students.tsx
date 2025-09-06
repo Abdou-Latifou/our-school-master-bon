@@ -120,7 +120,13 @@ export default function Students() {
   });
   
   // État local pour stocker les étudiants
-  const [students, setStudents] = useState([
+  const [students, setStudents] = useState(() => {
+    // Charger depuis localStorage au démarrage
+    const saved = localStorage.getItem('studentsData');
+    if (saved) {
+      return JSON.parse(saved);
+    }
+    return [
     {
       id: 1,
       matricule: "2024001",
@@ -174,8 +180,8 @@ export default function Students() {
       status: "active",
       paymentStatus: "pending",
       profileImage: ""
-    }
-  ]);
+    }];
+  });
 
   // Générer un matricule unique lorsque le dialogue s'ouvre
   useEffect(() => {
@@ -220,6 +226,11 @@ export default function Students() {
       return matriculeYear === new Date().getFullYear();
     }).length
   };
+
+  // Sauvegarder dans localStorage quand les étudiants changent
+  useEffect(() => {
+    localStorage.setItem('studentsData', JSON.stringify(students));
+  }, [students]);
 
   const handleAddStudent = () => {
     // Créer un nouvel élève avec les données du formulaire

@@ -113,12 +113,13 @@ export default function Grades() {
   const [searchTerm, setSearchTerm] = useState("");
   const [addStudentDialog, setAddStudentDialog] = useState(false);
   
-  // Récupérer les élèves depuis localStorage (synchronisation avec la page Élèves)
-  useEffect(() => {
-    const storedStudents = localStorage.getItem('students');
+  // Charger les élèves depuis Students.tsx au montage et quand ils changent
+  const loadStudentsFromStorage = () => {
+    const storedStudents = localStorage.getItem('studentsData');
     if (storedStudents) {
       const students = JSON.parse(storedStudents);
-      // Fusionner avec les notes existantes ou créer de nouvelles entrées
+      
+      // Créer ou mettre à jour les entrées de notes pour tous les élèves
       const updatedGrades = students.map((student: any) => {
         const existingGrade = studentGrades.find(g => g.matricule === student.matricule);
         if (existingGrade) {
@@ -127,9 +128,9 @@ export default function Grades() {
         // Créer une nouvelle entrée pour l'élève avec des notes vides
         return {
           id: student.id,
-          studentName: `${student.prenom} ${student.nom}`,
+          studentName: `${student.firstName} ${student.lastName}`,
           matricule: student.matricule,
-          class: student.classe,
+          class: student.class,
           grades: {
             math: { note1: 0, note2: 0, note3: 0, exam: 0 },
             french: { note1: 0, note2: 0, note3: 0, exam: 0 },
@@ -140,8 +141,26 @@ export default function Grades() {
           }
         };
       });
-      setStudentGrades(updatedGrades);
+      
+      // Conserver les notes existantes et ajouter les nouveaux élèves
+      const existingMatricules = studentGrades.map(g => g.matricule);
+      const newStudentGrades = updatedGrades.filter((g: any) => !existingMatricules.includes(g.matricule));
+      setStudentGrades([...studentGrades, ...newStudentGrades]);
     }
+  };
+
+  useEffect(() => {
+    loadStudentsFromStorage();
+    
+    // Écouter les changements dans localStorage
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'studentsData') {
+        loadStudentsFromStorage();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   // Calculate moyenne for each subject
@@ -272,7 +291,7 @@ export default function Grades() {
   };
 
   const syncWithStudents = () => {
-    const storedStudents = localStorage.getItem('students');
+    const storedStudents = localStorage.getItem('studentsData');
     if (storedStudents) {
       const students = JSON.parse(storedStudents);
       const newStudents = students.filter((student: any) => 
@@ -282,9 +301,9 @@ export default function Grades() {
       if (newStudents.length > 0) {
         const newGrades = newStudents.map((student: any) => ({
           id: studentGrades.length + student.id,
-          studentName: `${student.prenom} ${student.nom}`,
+          studentName: `${student.firstName} ${student.lastName}`,
           matricule: student.matricule,
-          class: student.classe,
+          class: student.class,
           grades: {
             math: { note1: 0, note2: 0, note3: 0, exam: 0 },
             french: { note1: 0, note2: 0, note3: 0, exam: 0 },
@@ -306,6 +325,12 @@ export default function Grades() {
           description: "Tous les élèves sont déjà synchronisés.",
         });
       }
+    } else {
+      toast({
+        title: "Aucun élève trouvé",
+        description: "Veuillez d'abord ajouter des élèves dans la page Élèves.",
+        variant: "destructive"
+      });
     }
   };
 
