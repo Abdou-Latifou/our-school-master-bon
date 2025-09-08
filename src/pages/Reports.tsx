@@ -6,13 +6,30 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Download, FileText, Filter, Printer, Search } from "lucide-react";
+import { Download, FileText, Filter, Printer, Search, School, GraduationCap } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const Reports = () => {
+  const [schoolLevel, setSchoolLevel] = useState<"college" | "lycee">("college");
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Classes du collège et du lycée
+  const collegeClasses = [
+    "6ème A", "6ème B", "6ème C",
+    "5ème A", "5ème B", "5ème C",
+    "4ème A", "4ème B", "4ème C",
+    "3ème A", "3ème B", "3ème C"
+  ];
+
+  const lyceeClasses = [
+    "2nde A", "2nde B", "2nde C", "2nde D",
+    "1ère L", "1ère S1", "1ère S2", "1ère ES", "1ère STMG",
+    "Terminale L", "Terminale S1", "Terminale S2", "Terminale ES", "Terminale STMG"
+  ];
+
+  const availableClasses = schoolLevel === "college" ? collegeClasses : lyceeClasses;
 
   const bulletins = [
     {
@@ -23,7 +40,8 @@ const Reports = () => {
       average: 16.5,
       rank: 2,
       status: "généré",
-      date: "2024-01-15"
+      date: "2024-01-15",
+      schoolLevel: "college"
     },
     {
       id: 2,
@@ -33,7 +51,8 @@ const Reports = () => {
       average: 14.2,
       rank: 8,
       status: "généré",
-      date: "2024-01-15"
+      date: "2024-01-15",
+      schoolLevel: "college"
     },
     {
       id: 3,
@@ -43,7 +62,8 @@ const Reports = () => {
       average: 17.8,
       rank: 1,
       status: "généré",
-      date: "2024-01-15"
+      date: "2024-01-15",
+      schoolLevel: "college"
     },
     {
       id: 4,
@@ -53,11 +73,40 @@ const Reports = () => {
       average: 12.5,
       rank: 15,
       status: "en attente",
-      date: null
+      date: null,
+      schoolLevel: "college"
+    },
+    {
+      id: 5,
+      studentName: "Emma Rousseau",
+      class: "2nde A",
+      period: "Trimestre 1",
+      average: 15.8,
+      rank: 3,
+      status: "généré",
+      date: "2024-01-15",
+      schoolLevel: "lycee"
+    },
+    {
+      id: 6,
+      studentName: "Antoine Leroy",
+      class: "Terminale S1",
+      period: "Trimestre 1",
+      average: 14.5,
+      rank: 7,
+      status: "en attente",
+      date: null,
+      schoolLevel: "lycee"
     }
   ];
 
   const handleGenerateBulletin = (studentId: number) => {
+    // Simulation de génération de bulletin
+    const bulletin = bulletins.find(b => b.id === studentId);
+    if (bulletin) {
+      bulletin.status = "généré";
+      bulletin.date = new Date().toISOString().split('T')[0];
+    }
     toast({
       title: "Bulletin généré",
       description: "Le bulletin a été généré avec succès",
@@ -65,32 +114,56 @@ const Reports = () => {
   };
 
   const handleDownloadBulletin = (studentId: number) => {
+    // Simulation de téléchargement PDF
+    const bulletin = bulletins.find(b => b.id === studentId);
+    if (bulletin) {
+      // Créer un lien de téléchargement factice
+      const link = document.createElement('a');
+      link.href = '#';
+      link.download = `bulletin_${bulletin.studentName.replace(' ', '_')}_${bulletin.period.replace(' ', '_')}.pdf`;
+      link.click();
+    }
     toast({
-      title: "Téléchargement",
+      title: "Téléchargement réussi",
       description: "Le bulletin a été téléchargé en PDF",
     });
   };
 
   const handlePrintBulletin = (studentId: number) => {
+    // Simulation d'impression
+    window.print();
     toast({
-      title: "Impression",
+      title: "Impression lancée",
       description: "Le bulletin a été envoyé à l'imprimante",
     });
   };
 
   const handleBatchGenerate = () => {
+    // Générer tous les bulletins en attente
+    const pendingBulletins = bulletins.filter(b => b.status === "en attente");
+    pendingBulletins.forEach(bulletin => {
+      bulletin.status = "généré";
+      bulletin.date = new Date().toISOString().split('T')[0];
+    });
     toast({
-      title: "Génération en masse",
-      description: "Tous les bulletins de la classe ont été générés",
+      title: "Génération en masse terminée",
+      description: `${pendingBulletins.length} bulletins ont été générés avec succès`,
     });
   };
 
+  const handleResetFilters = () => {
+    setSelectedClass("");
+    setSelectedPeriod("");
+    setSearchTerm("");
+  };
+
   const filteredBulletins = bulletins.filter(bulletin => {
+    const matchesLevel = bulletin.schoolLevel === schoolLevel;
     const matchesClass = !selectedClass || selectedClass === "all" || bulletin.class === selectedClass;
     const matchesPeriod = !selectedPeriod || selectedPeriod === "all" || bulletin.period === selectedPeriod;
     const matchesSearch = !searchTerm || 
       bulletin.studentName.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesClass && matchesPeriod && matchesSearch;
+    return matchesLevel && matchesClass && matchesPeriod && matchesSearch;
   });
 
   return (
@@ -103,6 +176,32 @@ const Reports = () => {
         <Button onClick={handleBatchGenerate} className="gap-2">
           <FileText className="h-4 w-4" />
           Générer tous les bulletins
+        </Button>
+      </div>
+
+      {/* Sélecteur de niveau scolaire */}
+      <div className="flex gap-2 justify-center">
+        <Button
+          variant={schoolLevel === "college" ? "default" : "outline"}
+          onClick={() => {
+            setSchoolLevel("college");
+            setSelectedClass("");
+          }}
+          className="gap-2"
+        >
+          <School className="h-4 w-4" />
+          Collège
+        </Button>
+        <Button
+          variant={schoolLevel === "lycee" ? "default" : "outline"}
+          onClick={() => {
+            setSchoolLevel("lycee");
+            setSelectedClass("");
+          }}
+          className="gap-2"
+        >
+          <GraduationCap className="h-4 w-4" />
+          Lycée
         </Button>
       </div>
 
@@ -176,12 +275,11 @@ const Reports = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Toutes les classes</SelectItem>
-                  <SelectItem value="6ème A">6ème A</SelectItem>
-                  <SelectItem value="6ème B">6ème B</SelectItem>
-                  <SelectItem value="5ème A">5ème A</SelectItem>
-                  <SelectItem value="5ème B">5ème B</SelectItem>
-                  <SelectItem value="4ème A">4ème A</SelectItem>
-                  <SelectItem value="3ème A">3ème A</SelectItem>
+                  {availableClasses.map((className) => (
+                    <SelectItem key={className} value={className}>
+                      {className}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -201,7 +299,11 @@ const Reports = () => {
               </Select>
             </div>
             <div className="flex items-end">
-              <Button variant="outline" className="w-full gap-2">
+              <Button 
+                variant="outline" 
+                className="w-full gap-2"
+                onClick={handleResetFilters}
+              >
                 <Filter className="h-4 w-4" />
                 Réinitialiser
               </Button>
