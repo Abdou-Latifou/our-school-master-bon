@@ -24,9 +24,9 @@ const Reports = () => {
   ];
 
   const lyceeClasses = [
-    "2nde A", "2nde B", "2nde C", "2nde D",
-    "1ère L", "1ère S1", "1ère S2", "1ère ES", "1ère STMG",
-    "Terminale L", "Terminale S1", "Terminale S2", "Terminale ES", "Terminale STMG"
+    "Seconde A4", "Seconde CD",
+    "1ère A4", "1ère D",
+    "Tle A4", "Tle D"
   ];
 
   const availableClasses = schoolLevel === "college" ? collegeClasses : lyceeClasses;
