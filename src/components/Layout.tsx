@@ -20,7 +20,8 @@ import {
   Library,
   Package,
   Bell,
-  Search
+  Search,
+  UserCog
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,7 @@ import { Input } from "@/components/ui/input";
 const menuItems = [
   { icon: Home, label: "Tableau de bord", path: "/" },
   { icon: Users, label: "Élèves", path: "/students" },
+  { icon: UserCog, label: "Personnel", path: "/staff" },
   { icon: BookOpen, label: "Notes", path: "/grades" },
   { icon: ClipboardList, label: "Bulletins", path: "/reports" },
   { icon: UserCheck, label: "Absences", path: "/attendance" },
