@@ -78,8 +78,10 @@ export default function Attendance() {
   // Présences du jour pour la classe sélectionnée
   const [attendance, setAttendance] = useState<any[]>([]);
 
-  // Nouvel élève à ajouter
+  // Nouvel élève à ajouter - avec filtres séparés
   const [newStudentSearch, setNewStudentSearch] = useState("");
+  const [dialogSchoolLevel, setDialogSchoolLevel] = useState<"college" | "lycee">("college");
+  const [dialogSelectedClass, setDialogSelectedClass] = useState("6ème A");
 
   // Charger les élèves depuis localStorage si disponible
   useEffect(() => {
@@ -177,9 +179,10 @@ export default function Attendance() {
     setNewStudentSearch("");
   };
 
-  // Élèves disponibles pour ajout (pas déjà dans la liste)
+  // Élèves disponibles pour ajout (pas déjà dans la liste) - filtrés par niveau et classe du dialogue
   const availableStudentsToAdd = allStudents.filter(s => 
-    s.level === schoolLevel &&
+    s.level === dialogSchoolLevel &&
+    s.class === dialogSelectedClass &&
     !attendance.find(a => a.id === s.id) &&
     (newStudentSearch === "" || 
       s.studentName.toLowerCase().includes(newStudentSearch.toLowerCase()) ||
@@ -554,6 +557,49 @@ export default function Attendance() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {/* Sélection du niveau */}
+            <div>
+              <Label className="mb-2 block">Niveau scolaire</Label>
+              <div className="flex gap-2">
+                <Button 
+                  variant={dialogSchoolLevel === "college" ? "default" : "outline"}
+                  onClick={() => {
+                    setDialogSchoolLevel("college");
+                    setDialogSelectedClass(allClasses.college[0]);
+                  }}
+                  className={dialogSchoolLevel === "college" ? "bg-gradient-primary flex-1" : "flex-1"}
+                >
+                  Collège
+                </Button>
+                <Button 
+                  variant={dialogSchoolLevel === "lycee" ? "default" : "outline"}
+                  onClick={() => {
+                    setDialogSchoolLevel("lycee");
+                    setDialogSelectedClass(allClasses.lycee[0]);
+                  }}
+                  className={dialogSchoolLevel === "lycee" ? "bg-gradient-primary flex-1" : "flex-1"}
+                >
+                  Lycée
+                </Button>
+              </div>
+            </div>
+
+            {/* Sélection de la classe */}
+            <div>
+              <Label className="mb-2 block">Classe</Label>
+              <Select value={dialogSelectedClass} onValueChange={setDialogSelectedClass}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une classe" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allClasses[dialogSchoolLevel].map((cls) => (
+                    <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Recherche */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -564,10 +610,11 @@ export default function Attendance() {
               />
             </div>
             
-            <div className="max-h-64 overflow-y-auto space-y-2">
+            {/* Liste des élèves */}
+            <div className="max-h-48 overflow-y-auto space-y-2">
               {availableStudentsToAdd.length === 0 ? (
                 <p className="text-center text-muted-foreground py-4">
-                  Aucun élève trouvé
+                  Aucun élève trouvé dans cette classe
                 </p>
               ) : (
                 availableStudentsToAdd.map((student) => (
