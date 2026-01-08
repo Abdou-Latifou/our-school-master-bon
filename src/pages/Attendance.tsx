@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,51 +40,86 @@ import {
   Users,
   FileText,
   Save,
-  Send
+  Send,
+  Plus,
+  Search
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const attendanceData = [
-  {
-    id: 1,
-    studentName: "Jean Dupont",
-    matricule: "2024001",
-    class: "3ème A",
-    status: "present",
-    arrivalTime: "08:00",
-    absences: 2,
-    retards: 1
-  },
-  {
-    id: 2,
-    studentName: "Sophie Martin",
-    matricule: "2024002",
-    class: "3ème A",
-    status: "absent",
-    arrivalTime: null,
-    absences: 5,
-    retards: 3,
-    reason: "Maladie"
-  },
-  {
-    id: 3,
-    studentName: "Lucas Bernard",
-    matricule: "2024003",
-    class: "3ème A",
-    status: "late",
-    arrivalTime: "08:35",
-    absences: 1,
-    retards: 4
-  }
+// Classes par niveau
+const allClasses: Record<string, string[]> = {
+  college: ["6ème A", "6ème B", "5ème A", "5ème B", "4ème A", "4ème B", "3ème A", "3ème B"],
+  lycee: ["2nde A", "2nde B", "1ère A", "1ère B", "Tle A", "Tle B", "Tle C", "Tle D"]
+};
+
+// Données initiales des élèves (simulées)
+const initialStudentsData = [
+  { id: 1, studentName: "Jean Dupont", matricule: "2024001", class: "3ème A", level: "college" },
+  { id: 2, studentName: "Sophie Martin", matricule: "2024002", class: "3ème A", level: "college" },
+  { id: 3, studentName: "Lucas Bernard", matricule: "2024003", class: "3ème A", level: "college" },
+  { id: 4, studentName: "Marie Claire", matricule: "2024004", class: "2nde A", level: "lycee" },
+  { id: 5, studentName: "Paul Essono", matricule: "2024005", class: "2nde A", level: "lycee" },
+  { id: 6, studentName: "Aminata Diallo", matricule: "2024006", class: "Tle A", level: "lycee" },
 ];
 
 export default function Attendance() {
   const { toast } = useToast();
+  const [schoolLevel, setSchoolLevel] = useState<"college" | "lycee">("college");
   const [selectedClass, setSelectedClass] = useState("3ème A");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [addStudentDialogOpen, setAddStudentDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
-  const [attendance, setAttendance] = useState(attendanceData);
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  // Liste des élèves disponibles (simulée, pourrait venir de localStorage)
+  const [allStudents, setAllStudents] = useState(initialStudentsData);
+  
+  // Présences du jour pour la classe sélectionnée
+  const [attendance, setAttendance] = useState<any[]>([]);
+
+  // Nouvel élève à ajouter
+  const [newStudentSearch, setNewStudentSearch] = useState("");
+
+  // Charger les élèves depuis localStorage si disponible
+  useEffect(() => {
+    const savedStudents = localStorage.getItem('students');
+    if (savedStudents) {
+      try {
+        const parsed = JSON.parse(savedStudents);
+        const mapped = parsed.map((s: any, index: number) => ({
+          id: index + 1,
+          studentName: `${s.firstName} ${s.lastName}`,
+          matricule: s.matricule,
+          class: s.class,
+          level: allClasses.college.includes(s.class) ? 'college' : 'lycee'
+        }));
+        setAllStudents(mapped.length > 0 ? mapped : initialStudentsData);
+      } catch (e) {
+        console.error("Erreur parsing students", e);
+      }
+    }
+  }, []);
+
+  // Mettre à jour la liste de présence quand la classe change
+  useEffect(() => {
+    const studentsInClass = allStudents.filter(
+      s => s.class === selectedClass && s.level === schoolLevel
+    );
+    setAttendance(studentsInClass.map(s => ({
+      ...s,
+      status: 'present',
+      arrivalTime: '08:00',
+      absences: Math.floor(Math.random() * 5),
+      retards: Math.floor(Math.random() * 3)
+    })));
+  }, [selectedClass, schoolLevel, allStudents]);
+
+  // Changer de niveau scolaire
+  const handleLevelChange = (level: "college" | "lycee") => {
+    setSchoolLevel(level);
+    setSelectedClass(allClasses[level][0]);
+  };
 
   const handleStatusChange = (studentId: number, status: string) => {
     setAttendance(prev => 
@@ -113,6 +148,43 @@ export default function Attendance() {
     });
     setDialogOpen(false);
   };
+
+  // Ajouter un élève absent à la liste
+  const handleAddAbsentStudent = (student: any) => {
+    const alreadyInList = attendance.find(s => s.id === student.id);
+    if (alreadyInList) {
+      toast({
+        title: "Élève déjà présent",
+        description: `${student.studentName} est déjà dans la liste.`,
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setAttendance(prev => [...prev, {
+      ...student,
+      status: 'absent',
+      arrivalTime: null,
+      absences: (student.absences || 0) + 1,
+      retards: student.retards || 0
+    }]);
+    
+    toast({
+      title: "Élève ajouté",
+      description: `${student.studentName} a été ajouté comme absent.`,
+    });
+    setAddStudentDialogOpen(false);
+    setNewStudentSearch("");
+  };
+
+  // Élèves disponibles pour ajout (pas déjà dans la liste)
+  const availableStudentsToAdd = allStudents.filter(s => 
+    s.level === schoolLevel &&
+    !attendance.find(a => a.id === s.id) &&
+    (newStudentSearch === "" || 
+      s.studentName.toLowerCase().includes(newStudentSearch.toLowerCase()) ||
+      s.matricule.includes(newStudentSearch))
+  );
 
   const getStatusBadge = (status: string) => {
     switch(status) {
@@ -204,11 +276,35 @@ export default function Attendance() {
 
         <TabsContent value="appel" className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Appel du Jour</CardTitle>
-              <CardDescription>Marquez les présences, absences et retards</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Appel du Jour</CardTitle>
+                <CardDescription>Marquez les présences, absences et retards</CardDescription>
+              </div>
+              <Button onClick={() => setAddStudentDialogOpen(true)} className="bg-gradient-primary">
+                <Plus className="mr-2 h-4 w-4" />
+                Ajouter Absent
+              </Button>
             </CardHeader>
             <CardContent>
+              {/* Niveau scolaire */}
+              <div className="flex gap-2 mb-4">
+                <Button 
+                  variant={schoolLevel === "college" ? "default" : "outline"}
+                  onClick={() => handleLevelChange("college")}
+                  className={schoolLevel === "college" ? "bg-gradient-primary" : ""}
+                >
+                  Collège
+                </Button>
+                <Button 
+                  variant={schoolLevel === "lycee" ? "default" : "outline"}
+                  onClick={() => handleLevelChange("lycee")}
+                  className={schoolLevel === "lycee" ? "bg-gradient-primary" : ""}
+                >
+                  Lycée
+                </Button>
+              </div>
+
               {/* Filters */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <Select value={selectedClass} onValueChange={setSelectedClass}>
@@ -216,9 +312,9 @@ export default function Attendance() {
                     <SelectValue placeholder="Sélectionner une classe" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="3ème A">3ème A</SelectItem>
-                    <SelectItem value="3ème B">3ème B</SelectItem>
-                    <SelectItem value="2nde A">2nde A</SelectItem>
+                    {allClasses[schoolLevel].map((cls) => (
+                      <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 
@@ -428,6 +524,61 @@ export default function Attendance() {
               </Button>
               <Button onClick={submitJustification} className="bg-gradient-primary">
                 Enregistrer
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog pour ajouter un élève absent */}
+      <Dialog open={addStudentDialogOpen} onOpenChange={setAddStudentDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ajouter un élève absent</DialogTitle>
+            <DialogDescription>
+              Recherchez et ajoutez un élève à la liste des absents
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Rechercher par nom ou matricule..."
+                value={newStudentSearch}
+                onChange={(e) => setNewStudentSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            
+            <div className="max-h-64 overflow-y-auto space-y-2">
+              {availableStudentsToAdd.length === 0 ? (
+                <p className="text-center text-muted-foreground py-4">
+                  Aucun élève trouvé
+                </p>
+              ) : (
+                availableStudentsToAdd.map((student) => (
+                  <div 
+                    key={student.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
+                    onClick={() => handleAddAbsentStudent(student)}
+                  >
+                    <div>
+                      <p className="font-medium">{student.studentName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {student.matricule} - {student.class}
+                      </p>
+                    </div>
+                    <Button size="sm" variant="outline">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+            
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={() => setAddStudentDialogOpen(false)}>
+                Fermer
               </Button>
             </div>
           </div>
