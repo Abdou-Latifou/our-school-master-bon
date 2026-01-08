@@ -199,6 +199,19 @@ export default function Attendance() {
     }
   };
 
+  // Calculs dynamiques des statistiques
+  const stats = {
+    presents: attendance.filter(s => s.status === 'present').length,
+    absents: attendance.filter(s => s.status === 'absent').length,
+    retards: attendance.filter(s => s.status === 'late').length,
+    total: attendance.length
+  };
+
+  const presenceRate = stats.total > 0 ? ((stats.presents / stats.total) * 100).toFixed(1) : 0;
+  const absentRate = stats.total > 0 ? ((stats.absents / stats.total) * 100).toFixed(1) : 0;
+  const retardRate = stats.total > 0 ? ((stats.retards / stats.total) * 100).toFixed(1) : 0;
+  const absenteeismRate = stats.total > 0 ? (((stats.absents + stats.retards) / stats.total) * 100).toFixed(1) : 0;
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -223,8 +236,9 @@ export default function Attendance() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,185</div>
-            <p className="text-xs text-muted-foreground">95% de présence</p>
+            <div className="text-2xl font-bold">{stats.presents}</div>
+            <p className="text-xs text-muted-foreground">{presenceRate}% de présence</p>
+            <p className="text-xs text-muted-foreground mt-1">Classe: {selectedClass}</p>
           </CardContent>
         </Card>
         <Card>
@@ -235,8 +249,8 @@ export default function Attendance() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">42</div>
-            <p className="text-xs text-muted-foreground">3.4% du total</p>
+            <div className="text-2xl font-bold">{stats.absents}</div>
+            <p className="text-xs text-muted-foreground">{absentRate}% du total</p>
           </CardContent>
         </Card>
         <Card>
@@ -247,8 +261,8 @@ export default function Attendance() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">21</div>
-            <p className="text-xs text-muted-foreground">1.7% du total</p>
+            <div className="text-2xl font-bold">{stats.retards}</div>
+            <p className="text-xs text-muted-foreground">{retardRate}% du total</p>
           </CardContent>
         </Card>
         <Card>
@@ -259,8 +273,8 @@ export default function Attendance() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">4.5%</div>
-            <p className="text-xs text-muted-foreground text-secondary">-0.8% ce mois</p>
+            <div className="text-2xl font-bold">{absenteeismRate}%</div>
+            <p className="text-xs text-muted-foreground">Total: {stats.total} élèves</p>
           </CardContent>
         </Card>
       </div>
