@@ -27,7 +27,8 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 
 const menuItems = [
-  { icon: Home, label: "Tableau de bord", path: "/" },
+  { icon: Home, label: "Accueil", path: "/" },
+  { icon: BarChart3, label: "Tableau de bord", path: "/dashboard" },
   { icon: Users, label: "Élèves", path: "/students" },
   { icon: UserCog, label: "Personnel", path: "/staff" },
   { icon: BookOpen, label: "Notes", path: "/grades" },
