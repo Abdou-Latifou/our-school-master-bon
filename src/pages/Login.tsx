@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { GraduationCap, Lock, User, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+import loginBg from "@/assets/login-bg.png";
+
 export default function Login() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -47,31 +49,37 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-primary flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-secondary/20" />
+    <div className="min-h-screen flex items-center justify-center p-4 relative">
+      {/* Image de fond */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url(${loginBg})` }}
+      />
+      {/* Overlay sombre pour lisibilité */}
+      <div className="absolute inset-0 bg-black/50" />
       
-      <Card className="w-full max-w-md relative z-10 shadow-xl">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center shadow-lg">
-            <GraduationCap className="w-8 h-8 text-primary-foreground" />
+      <Card className="w-full max-w-lg relative z-10 shadow-2xl bg-background/95 backdrop-blur-sm border-2">
+        <CardHeader className="text-center pb-8">
+          <div className="mx-auto mb-6 w-24 h-24 bg-gradient-primary rounded-full flex items-center justify-center shadow-xl">
+            <GraduationCap className="w-12 h-12 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl font-bold">OurSchool</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-4xl font-bold tracking-tight">OurSchool</CardTitle>
+          <CardDescription className="text-xl mt-2">
             Système de Gestion Scolaire Professionnel
           </CardDescription>
         </CardHeader>
         
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="username">Nom d'utilisateur</Label>
+        <CardContent className="px-8 pb-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-3">
+              <Label htmlFor="username" className="text-lg font-semibold">Nom d'utilisateur</Label>
               <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <User className="absolute left-4 top-4 h-6 w-6 text-muted-foreground" />
                 <Input
                   id="username"
                   type="text"
                   placeholder="Entrez votre nom d'utilisateur"
-                  className="pl-10"
+                  className="pl-14 h-14 text-lg"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                   required
@@ -79,15 +87,15 @@ export default function Login() {
               </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
+            <div className="space-y-3">
+              <Label htmlFor="password" className="text-lg font-semibold">Mot de passe</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Lock className="absolute left-4 top-4 h-6 w-6 text-muted-foreground" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Entrez votre mot de passe"
-                  className="pl-10 pr-10"
+                  className="pl-14 pr-14 h-14 text-lg"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
@@ -95,23 +103,23 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-4 top-4 text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {showPassword ? <EyeOff className="h-6 w-6" /> : <Eye className="h-6 w-6" />}
                 </button>
               </div>
             </div>
             
             <Button
               type="submit"
-              className="w-full bg-gradient-primary hover:opacity-90 transition-opacity"
+              className="w-full h-14 text-xl font-bold bg-gradient-primary hover:opacity-90 transition-opacity mt-4"
               disabled={isLoading}
             >
               {isLoading ? "Connexion..." : "Se connecter"}
             </Button>
             
-            <div className="text-center text-sm text-muted-foreground">
-              <p>Utilisateur de test : <span className="font-mono">admin / admin123</span></p>
+            <div className="text-center text-base text-muted-foreground pt-2">
+              <p>Utilisateur de test : <span className="font-mono font-bold">admin / admin123</span></p>
             </div>
           </form>
         </CardContent>
