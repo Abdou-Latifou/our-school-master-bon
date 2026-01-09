@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 import { 
   User, 
   Shield, 
@@ -13,7 +14,7 @@ import {
 } from "lucide-react";
 
 const Home = () => {
-  // Simuler les informations de l'administrateur connecté
+  const navigate = useNavigate();
   const adminInfo = {
     name: "Administrateur Principal",
     role: "Super Admin",
@@ -158,19 +159,19 @@ const Home = () => {
         </CardHeader>
         <CardContent>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button size="lg" className="h-16 text-lg">
+            <Button size="lg" className="h-16 text-lg" onClick={() => navigate("/staff")}>
               <User className="w-5 h-5 mr-2" />
               Gérer Utilisateurs
             </Button>
-            <Button size="lg" variant="outline" className="h-16 text-lg">
+            <Button size="lg" variant="outline" className="h-16 text-lg" onClick={() => navigate("/settings")}>
               <Shield className="w-5 h-5 mr-2" />
               Permissions
             </Button>
-            <Button size="lg" variant="outline" className="h-16 text-lg">
+            <Button size="lg" variant="outline" className="h-16 text-lg" onClick={() => navigate("/settings")}>
               <Calendar className="w-5 h-5 mr-2" />
               Année Scolaire
             </Button>
-            <Button size="lg" variant="outline" className="h-16 text-lg">
+            <Button size="lg" variant="outline" className="h-16 text-lg" onClick={() => navigate("/settings")}>
               <Settings className="w-5 h-5 mr-2" />
               Paramètres
             </Button>
