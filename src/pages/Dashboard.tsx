@@ -16,6 +16,7 @@ import {
   School
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
+import { useNavigate } from "react-router-dom";
 
 const stats = [
   {
@@ -75,6 +76,8 @@ const recentActivities = [
 ];
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -169,19 +172,19 @@ export default function Dashboard() {
             <CardDescription>Accès rapide aux fonctionnalités</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button className="w-full justify-start" variant="outline">
+            <Button className="w-full justify-start" variant="outline" onClick={() => navigate("/students")}>
               <Users className="mr-2 h-4 w-4" />
               Nouvel Élève
             </Button>
-            <Button className="w-full justify-start" variant="outline">
+            <Button className="w-full justify-start" variant="outline" onClick={() => navigate("/grades")}>
               <BookOpen className="mr-2 h-4 w-4" />
               Saisir des Notes
             </Button>
-            <Button className="w-full justify-start" variant="outline">
+            <Button className="w-full justify-start" variant="outline" onClick={() => navigate("/payments")}>
               <CreditCard className="mr-2 h-4 w-4" />
               Enregistrer Paiement
             </Button>
-            <Button className="w-full justify-start" variant="outline">
+            <Button className="w-full justify-start" variant="outline" onClick={() => navigate("/schedule")}>
               <Calendar className="mr-2 h-4 w-4" />
               Gérer Emploi du Temps
             </Button>
@@ -238,14 +241,14 @@ export default function Dashboard() {
                 <p className="font-medium">15 paiements en retard</p>
                 <p className="text-sm text-muted-foreground">Relances à envoyer cette semaine</p>
               </div>
-              <Button size="sm" variant="outline">Voir détails</Button>
+              <Button size="sm" variant="outline" onClick={() => navigate("/payments")}>Voir détails</Button>
             </div>
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium">Bulletins du trimestre</p>
                 <p className="text-sm text-muted-foreground">À générer avant le 15 décembre</p>
               </div>
-              <Button size="sm" variant="outline">Commencer</Button>
+              <Button size="sm" variant="outline" onClick={() => navigate("/reports")}>Commencer</Button>
             </div>
           </div>
         </CardContent>
