@@ -39,8 +39,13 @@ import {
   Users,
   UserPlus,
   School,
-  Building2
+  Building2,
+  Settings,
+  Trash2,
+  ToggleLeft,
+  ToggleRight
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
@@ -121,6 +126,14 @@ const initialStudentGrades = [
   }
 ];
 
+// Type pour les contrôles
+interface Controle {
+  id: string;
+  name: string;
+  enabled: boolean;
+  coefficient: number;
+}
+
 export default function Grades() {
   const { toast } = useToast();
   const [schoolLevel, setSchoolLevel] = useState<"college" | "lycee">("college");
@@ -131,6 +144,120 @@ export default function Grades() {
   const [studentGrades, setStudentGrades] = useState(initialStudentGrades);
   const [searchTerm, setSearchTerm] = useState("");
   const [addStudentDialog, setAddStudentDialog] = useState(false);
+  const [controlesDialogOpen, setControlesDialogOpen] = useState(false);
+  
+  // État pour gérer les contrôles
+  const [controles, setControles] = useState<Controle[]>([
+    { id: 'note1', name: 'Contrôle 1', enabled: true, coefficient: 1 },
+    { id: 'note2', name: 'Contrôle 2', enabled: true, coefficient: 1 },
+    { id: 'note3', name: 'Contrôle 3', enabled: true, coefficient: 1 },
+    { id: 'exam', name: 'Examen', enabled: true, coefficient: 2 },
+  ]);
+  
+  const [newControleName, setNewControleName] = useState("");
+  const [newControleCoef, setNewControleCoef] = useState(1);
+
+  // Charger les contrôles depuis localStorage
+  useEffect(() => {
+    const savedControles = localStorage.getItem('gradeControles');
+    if (savedControles) {
+      setControles(JSON.parse(savedControles));
+    }
+  }, []);
+
+  // Sauvegarder les contrôles dans localStorage
+  const saveControles = (newControles: Controle[]) => {
+    setControles(newControles);
+    localStorage.setItem('gradeControles', JSON.stringify(newControles));
+  };
+
+  // Contrôles actifs uniquement
+  const activeControles = controles.filter(c => c.enabled);
+
+  // Ajouter un nouveau contrôle
+  const handleAddControle = () => {
+    if (!newControleName.trim()) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez entrer un nom pour le contrôle.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const newId = `note${controles.length + 1}`;
+    const newControle: Controle = {
+      id: newId,
+      name: newControleName.trim(),
+      enabled: true,
+      coefficient: newControleCoef
+    };
+    
+    saveControles([...controles, newControle]);
+    setNewControleName("");
+    setNewControleCoef(1);
+    
+    toast({
+      title: "Contrôle ajouté",
+      description: `${newControle.name} a été ajouté avec succès.`
+    });
+  };
+
+  // Supprimer un contrôle
+  const handleDeleteControle = (id: string) => {
+    if (controles.length <= 2) {
+      toast({
+        title: "Erreur",
+        description: "Vous devez garder au moins 2 contrôles.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const updatedControles = controles.filter(c => c.id !== id);
+    saveControles(updatedControles);
+    
+    toast({
+      title: "Contrôle supprimé",
+      description: "Le contrôle a été supprimé."
+    });
+  };
+
+  // Activer/Désactiver un contrôle
+  const handleToggleControle = (id: string) => {
+    const enabledCount = controles.filter(c => c.enabled).length;
+    const controle = controles.find(c => c.id === id);
+    
+    if (controle?.enabled && enabledCount <= 2) {
+      toast({
+        title: "Erreur",
+        description: "Vous devez garder au moins 2 contrôles actifs.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const updatedControles = controles.map(c => 
+      c.id === id ? { ...c, enabled: !c.enabled } : c
+    );
+    saveControles(updatedControles);
+  };
+
+  // Modifier le nom d'un contrôle
+  const handleUpdateControleName = (id: string, newName: string) => {
+    const updatedControles = controles.map(c => 
+      c.id === id ? { ...c, name: newName } : c
+    );
+    saveControles(updatedControles);
+  };
+
+  // Modifier le coefficient d'un contrôle
+  const handleUpdateControleCoef = (id: string, newCoef: number) => {
+    const updatedControles = controles.map(c => 
+      c.id === id ? { ...c, coefficient: newCoef } : c
+    );
+    saveControles(updatedControles);
+  };
   
   // Charger les élèves depuis Students.tsx au montage et quand ils changent
   const loadStudentsFromStorage = () => {
@@ -182,10 +309,18 @@ export default function Grades() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Calculate moyenne for each subject
+  // Calculate moyenne for each subject based on active controles
   const calculateMoyenne = (notes: any) => {
-    const { note1, note2, note3, exam } = notes;
-    return ((note1 + note2 + note3 + exam * 2) / 5).toFixed(1);
+    let total = 0;
+    let totalCoef = 0;
+    
+    activeControles.forEach(controle => {
+      const noteValue = notes[controle.id] || 0;
+      total += noteValue * controle.coefficient;
+      totalCoef += controle.coefficient;
+    });
+    
+    return totalCoef > 0 ? (total / totalCoef).toFixed(1) : '0.0';
   };
 
   // Calculate moyenne générale for a student
@@ -443,6 +578,97 @@ export default function Grades() {
           <p className="text-muted-foreground">Saisie et suivi des performances scolaires</p>
         </div>
         <div className="flex gap-2">
+          <Dialog open={controlesDialogOpen} onOpenChange={setControlesDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Settings className="mr-2 h-4 w-4" />
+                Configurer Contrôles
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Configuration des Contrôles</DialogTitle>
+                <DialogDescription>
+                  Gérez les contrôles et examens pour votre établissement
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4">
+                {/* Liste des contrôles existants */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Contrôles actifs</Label>
+                  {controles.map((controle) => (
+                    <div key={controle.id} className="flex items-center gap-2 p-3 border rounded-lg bg-background">
+                      <Switch
+                        checked={controle.enabled}
+                        onCheckedChange={() => handleToggleControle(controle.id)}
+                      />
+                      <Input
+                        value={controle.name}
+                        onChange={(e) => handleUpdateControleName(controle.id, e.target.value)}
+                        className="flex-1"
+                      />
+                      <div className="flex items-center gap-1">
+                        <Label className="text-xs text-muted-foreground">Coef:</Label>
+                        <Input
+                          type="number"
+                          value={controle.coefficient}
+                          onChange={(e) => handleUpdateControleCoef(controle.id, parseFloat(e.target.value) || 1)}
+                          className="w-16"
+                          min="1"
+                          max="5"
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteControle(controle.id)}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Ajouter un nouveau contrôle */}
+                <div className="space-y-2 pt-4 border-t">
+                  <Label className="text-sm font-medium">Ajouter un contrôle</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Nom du contrôle"
+                      value={newControleName}
+                      onChange={(e) => setNewControleName(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Input
+                      type="number"
+                      placeholder="Coef"
+                      value={newControleCoef}
+                      onChange={(e) => setNewControleCoef(parseFloat(e.target.value) || 1)}
+                      className="w-20"
+                      min="1"
+                      max="5"
+                    />
+                    <Button onClick={handleAddControle}>
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="text-xs text-muted-foreground bg-muted p-3 rounded-lg">
+                  <p><strong>Info:</strong> Vous devez avoir au moins 2 contrôles actifs.</p>
+                  <p>Le coefficient détermine le poids de chaque contrôle dans le calcul de la moyenne.</p>
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button onClick={() => setControlesDialogOpen(false)}>
+                  Fermer
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
           <Button variant="outline" onClick={syncWithStudents}>
             <Users className="mr-2 h-4 w-4" />
             Synchroniser Élèves
@@ -601,15 +827,19 @@ export default function Grades() {
               </div>
 
               {/* Grades Table */}
-              <div className="rounded-md border">
+              <div className="rounded-md border overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Élève</TableHead>
-                      <TableHead className="text-center">Contrôle 1</TableHead>
-                      <TableHead className="text-center">Contrôle 2</TableHead>
-                      <TableHead className="text-center">Contrôle 3</TableHead>
-                      <TableHead className="text-center">Examen</TableHead>
+                      {activeControles.map(controle => (
+                        <TableHead key={controle.id} className="text-center">
+                          {controle.name}
+                          <span className="block text-xs text-muted-foreground">
+                            (Coef. {controle.coefficient})
+                          </span>
+                        </TableHead>
+                      ))}
                       <TableHead className="text-center">Moyenne</TableHead>
                       <TableHead>Appréciation</TableHead>
                     </TableRow>
@@ -623,71 +853,25 @@ export default function Grades() {
                             <p className="text-sm text-muted-foreground">{student.matricule}</p>
                           </div>
                         </TableCell>
-                        <TableCell className="text-center">
-                          {editMode ? (
-                            <Input 
-                              type="number" 
-                              defaultValue={student.grades.math.note1} 
-                              className="w-16 mx-auto"
-                              min="0"
-                              max="20"
-                              onChange={(e) => updateGrade(student.id, 'math', 'note1', parseFloat(e.target.value) || 0)}
-                            />
-                          ) : (
-                            <span className={getGradeColor(student.grades.math.note1)}>
-                              {student.grades.math.note1}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {editMode ? (
-                            <Input 
-                              type="number" 
-                              defaultValue={student.grades.math.note2} 
-                              className="w-16 mx-auto"
-                              min="0"
-                              max="20"
-                              onChange={(e) => updateGrade(student.id, 'math', 'note2', parseFloat(e.target.value) || 0)}
-                            />
-                          ) : (
-                            <span className={getGradeColor(student.grades.math.note2)}>
-                              {student.grades.math.note2}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {editMode ? (
-                            <Input 
-                              type="number" 
-                              defaultValue={student.grades.math.note3} 
-                              className="w-16 mx-auto"
-                              min="0"
-                              max="20"
-                              onChange={(e) => updateGrade(student.id, 'math', 'note3', parseFloat(e.target.value) || 0)}
-                            />
-                          ) : (
-                            <span className={getGradeColor(student.grades.math.note3)}>
-                              {student.grades.math.note3}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {editMode ? (
-                            <Input 
-                              type="number" 
-                              defaultValue={student.grades.math.exam} 
-                              className="w-16 mx-auto"
-                              min="0"
-                              max="20"
-                              step="0.5"
-                              onChange={(e) => updateGrade(student.id, 'math', 'exam', parseFloat(e.target.value) || 0)}
-                            />
-                          ) : (
-                            <span className={`font-bold ${getGradeColor(student.grades.math.exam)}`}>
-                              {student.grades.math.exam}
-                            </span>
-                          )}
-                        </TableCell>
+                        {activeControles.map(controle => (
+                          <TableCell key={controle.id} className="text-center">
+                            {editMode ? (
+                              <Input 
+                                type="number" 
+                                defaultValue={student.grades.math[controle.id as keyof typeof student.grades.math] || 0} 
+                                className="w-16 mx-auto"
+                                min="0"
+                                max="20"
+                                step="0.5"
+                                onChange={(e) => updateGrade(student.id, 'math', controle.id, parseFloat(e.target.value) || 0)}
+                              />
+                            ) : (
+                              <span className={getGradeColor(student.grades.math[controle.id as keyof typeof student.grades.math] || 0)}>
+                                {student.grades.math[controle.id as keyof typeof student.grades.math] || 0}
+                              </span>
+                            )}
+                          </TableCell>
+                        ))}
                         <TableCell className="text-center">
                           <span className={`font-bold ${getGradeColor(parseFloat(calculateMoyenne(student.grades.math)))}`}>
                             {calculateMoyenne(student.grades.math)}
