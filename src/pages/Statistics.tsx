@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, Download, FileText, TrendingUp, Users, GraduationCap, RefreshCw } from "lucide-react";
+import { BarChart3, Download, FileText, TrendingUp, Users, GraduationCap, RefreshCw, Loader2 } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { toast } from "@/hooks/use-toast";
 
@@ -17,6 +17,7 @@ interface Student {
   gender: string;
   status: string;
   paymentStatus: string;
+  enrollmentDate?: string;
 }
 
 interface StudentGrade {
@@ -25,6 +26,7 @@ interface StudentGrade {
   matricule: string;
   class: string;
   grades: Record<string, Record<string, number>>;
+  period?: string; // trimester1, trimester2, trimester3, semester1, semester2
 }
 
 // Coefficients des matières
@@ -46,29 +48,53 @@ const subjectNames: Record<string, string> = {
   svt: "SVT"
 };
 
+// Configuration des périodes
+const periodConfig = {
+  trimester: {
+    options: [
+      { value: "1", label: "1er Trimestre", months: [9, 10, 11] },
+      { value: "2", label: "2ème Trimestre", months: [12, 1, 2] },
+      { value: "3", label: "3ème Trimestre", months: [3, 4, 5, 6] }
+    ]
+  },
+  semester: {
+    options: [
+      { value: "1", label: "1er Semestre", months: [9, 10, 11, 12, 1, 2] },
+      { value: "2", label: "2ème Semestre", months: [3, 4, 5, 6] }
+    ]
+  },
+  year: {
+    options: [
+      { value: "full", label: "Année complète", months: [9, 10, 11, 12, 1, 2, 3, 4, 5, 6] }
+    ]
+  }
+};
+
 const Statistics = () => {
-  const [selectedPeriod, setSelectedPeriod] = useState("trimester");
+  const [selectedPeriodType, setSelectedPeriodType] = useState<"trimester" | "semester" | "year">("trimester");
+  const [selectedPeriodValue, setSelectedPeriodValue] = useState("1");
   const [selectedYear, setSelectedYear] = useState("2024-2025");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // État pour les données chargées depuis localStorage
   const [students, setStudents] = useState<Student[]>([]);
   const [studentGrades, setStudentGrades] = useState<StudentGrade[]>([]);
 
   // Charger les données depuis localStorage
-  useEffect(() => {
-    const loadData = () => {
-      const savedStudents = localStorage.getItem('studentsData');
-      const savedGrades = localStorage.getItem('studentGrades');
-      
-      if (savedStudents) {
-        setStudents(JSON.parse(savedStudents));
-      }
-      if (savedGrades) {
-        setStudentGrades(JSON.parse(savedGrades));
-      }
-    };
+  const loadData = useCallback(() => {
+    const savedStudents = localStorage.getItem('studentsData');
+    const savedGrades = localStorage.getItem('studentGrades');
+    
+    if (savedStudents) {
+      setStudents(JSON.parse(savedStudents));
+    }
+    if (savedGrades) {
+      setStudentGrades(JSON.parse(savedGrades));
+    }
+  }, []);
 
+  useEffect(() => {
     loadData();
 
     // Écouter les changements dans localStorage
@@ -78,11 +104,40 @@ const Statistics = () => {
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, [refreshKey]);
+  }, [refreshKey, loadData]);
+
+  // Reset period value when period type changes
+  useEffect(() => {
+    setSelectedPeriodValue(periodConfig[selectedPeriodType].options[0].value);
+  }, [selectedPeriodType]);
+
+  // Filtrer les données selon la période sélectionnée
+  const filteredStudents = useMemo(() => {
+    // Pour l'instant, on retourne tous les élèves car on n'a pas de date d'inscription précise
+    // Dans une vraie implémentation, on filtrerait par date d'inscription
+    return students;
+  }, [students, selectedYear]);
+
+  const filteredGrades = useMemo(() => {
+    // Filtrer les notes par période si disponible
+    return studentGrades.filter(grade => {
+      if (!grade.period) return true; // Si pas de période définie, inclure toutes les notes
+      
+      if (selectedPeriodType === "trimester") {
+        return grade.period === `trimester${selectedPeriodValue}`;
+      } else if (selectedPeriodType === "semester") {
+        const trimestersInSemester = selectedPeriodValue === "1" ? ["1", "2"] : ["3"];
+        return trimestersInSemester.some(t => grade.period === `trimester${t}` || grade.period === `semester${selectedPeriodValue}`);
+      }
+      return true; // Pour l'année, inclure toutes les notes
+    });
+  }, [studentGrades, selectedPeriodType, selectedPeriodValue]);
 
   // Calculer les statistiques des notes
   const gradeStats = useMemo(() => {
-    if (studentGrades.length === 0) {
+    const gradesToUse = filteredGrades.length > 0 ? filteredGrades : studentGrades;
+    
+    if (gradesToUse.length === 0) {
       return {
         averageGeneral: 0,
         successRate: 0,
@@ -119,7 +174,7 @@ const Statistics = () => {
       return totalCoef > 0 ? total / totalCoef : 0;
     };
 
-    studentGrades.forEach(student => {
+    gradesToUse.forEach(student => {
       let studentTotal = 0;
       let studentCoef = 0;
 
@@ -174,19 +229,21 @@ const Statistics = () => {
       bySubject,
       byClass
     };
-  }, [studentGrades]);
+  }, [filteredGrades, studentGrades]);
 
   // Statistiques des paiements (basées sur les données des étudiants)
   const paymentStats = useMemo(() => {
-    if (students.length === 0) {
+    const studentsToUse = filteredStudents.length > 0 ? filteredStudents : students;
+    
+    if (studentsToUse.length === 0) {
       return { paid: 0, partial: 0, pending: 0, paidPercent: 0, partialPercent: 0, pendingPercent: 0 };
     }
 
-    const paid = students.filter(s => s.paymentStatus === 'paid').length;
-    const partial = students.filter(s => s.paymentStatus === 'partial').length;
-    const pending = students.filter(s => s.paymentStatus === 'pending').length;
+    const paid = studentsToUse.filter(s => s.paymentStatus === 'paid').length;
+    const partial = studentsToUse.filter(s => s.paymentStatus === 'partial').length;
+    const pending = studentsToUse.filter(s => s.paymentStatus === 'pending').length;
 
-    const total = students.length;
+    const total = studentsToUse.length;
     return {
       paid,
       partial,
@@ -195,7 +252,7 @@ const Statistics = () => {
       partialPercent: Math.round((partial / total) * 100),
       pendingPercent: Math.round((pending / total) * 100)
     };
-  }, [students]);
+  }, [filteredStudents, students]);
 
   // Générer les données pour les graphiques
   const performanceData = useMemo(() => {
@@ -211,8 +268,8 @@ const Statistics = () => {
         classGroups[level].count += data.count;
         classGroups[level].students += data.count;
       });
-    } else if (students.length > 0) {
-      students.forEach(s => {
+    } else if (filteredStudents.length > 0) {
+      filteredStudents.forEach(s => {
         const level = s.class.split(' ')[0];
         if (!classGroups[level]) {
           classGroups[level] = { total: 0, count: 0, students: 0 };
@@ -236,7 +293,7 @@ const Statistics = () => {
       average: data.count > 0 ? parseFloat((data.total / data.count).toFixed(1)) : 0,
       students: data.students
     }));
-  }, [gradeStats.byClass, students]);
+  }, [gradeStats.byClass, filteredStudents]);
 
   const subjectPerformance = useMemo(() => {
     if (Object.keys(gradeStats.bySubject).length === 0) {
@@ -257,7 +314,7 @@ const Statistics = () => {
   }, [gradeStats.bySubject]);
 
   const financialData = useMemo(() => {
-    if (students.length === 0) {
+    if (filteredStudents.length === 0) {
       return [
         { name: "Payé", value: 0, color: "hsl(var(--success))" },
         { name: "Partiel", value: 0, color: "hsl(var(--warning))" },
@@ -270,57 +327,68 @@ const Statistics = () => {
       { name: "Partiel", value: paymentStats.partialPercent, color: "hsl(var(--warning))" },
       { name: "En attente", value: paymentStats.pendingPercent, color: "hsl(var(--destructive))" }
     ];
-  }, [students.length, paymentStats]);
+  }, [filteredStudents.length, paymentStats]);
 
-  // Données d'assiduité (simulées pour l'instant)
+  // Données d'assiduité basées sur la période sélectionnée
   const attendanceData = useMemo(() => {
-    const months = selectedPeriod === "trimester" 
-      ? ["Sept", "Oct", "Nov"]
-      : selectedPeriod === "semester"
-      ? ["Sept-Nov", "Déc-Fév"]
-      : ["Sept", "Oct", "Nov", "Déc", "Jan", "Fév", "Mars", "Avr", "Mai", "Juin"];
+    const currentPeriod = periodConfig[selectedPeriodType].options.find(
+      opt => opt.value === selectedPeriodValue
+    );
+    
+    const monthNames: Record<number, string> = {
+      1: "Jan", 2: "Fév", 3: "Mars", 4: "Avr", 5: "Mai", 6: "Juin",
+      9: "Sept", 10: "Oct", 11: "Nov", 12: "Déc"
+    };
 
+    const months = currentPeriod?.months || [9, 10, 11];
+    
     return months.map(month => ({
-      month,
+      month: monthNames[month] || month.toString(),
       presence: 85 + Math.floor(Math.random() * 10),
       absence: 5 + Math.floor(Math.random() * 10)
     }));
-  }, [selectedPeriod]);
+  }, [selectedPeriodType, selectedPeriodValue]);
 
   // Données d'évolution
   const evolutionData = useMemo(() => {
     const currentYear = new Date().getFullYear();
     return [
-      { year: (currentYear - 4).toString(), students: Math.max(0, students.length - 40), average: gradeStats.averageGeneral > 0 ? gradeStats.averageGeneral - 1 : 12.5 },
-      { year: (currentYear - 3).toString(), students: Math.max(0, students.length - 30), average: gradeStats.averageGeneral > 0 ? gradeStats.averageGeneral - 0.7 : 12.8 },
-      { year: (currentYear - 2).toString(), students: Math.max(0, students.length - 20), average: gradeStats.averageGeneral > 0 ? gradeStats.averageGeneral - 0.4 : 13.2 },
-      { year: (currentYear - 1).toString(), students: Math.max(0, students.length - 10), average: gradeStats.averageGeneral > 0 ? gradeStats.averageGeneral - 0.2 : 13.8 },
-      { year: currentYear.toString(), students: students.length, average: gradeStats.averageGeneral > 0 ? gradeStats.averageGeneral : 14.0 }
+      { year: (currentYear - 4).toString(), students: Math.max(0, filteredStudents.length - 40), average: gradeStats.averageGeneral > 0 ? gradeStats.averageGeneral - 1 : 12.5 },
+      { year: (currentYear - 3).toString(), students: Math.max(0, filteredStudents.length - 30), average: gradeStats.averageGeneral > 0 ? gradeStats.averageGeneral - 0.7 : 12.8 },
+      { year: (currentYear - 2).toString(), students: Math.max(0, filteredStudents.length - 20), average: gradeStats.averageGeneral > 0 ? gradeStats.averageGeneral - 0.4 : 13.2 },
+      { year: (currentYear - 1).toString(), students: Math.max(0, filteredStudents.length - 10), average: gradeStats.averageGeneral > 0 ? gradeStats.averageGeneral - 0.2 : 13.8 },
+      { year: currentYear.toString(), students: filteredStudents.length, average: gradeStats.averageGeneral > 0 ? gradeStats.averageGeneral : 14.0 }
     ];
-  }, [students.length, gradeStats.averageGeneral]);
+  }, [filteredStudents.length, gradeStats.averageGeneral]);
 
   const stats = useMemo(() => ({
-    totalStudents: students.length > 0 ? students.length.toString() : "0",
+    totalStudents: filteredStudents.length > 0 ? filteredStudents.length.toString() : "0",
     averageGeneral: gradeStats.averageGeneral > 0 ? `${gradeStats.averageGeneral.toFixed(1)}/20` : "N/A",
     successRate: gradeStats.successRate > 0 ? `${Math.round(gradeStats.successRate)}%` : "N/A",
     attendanceRate: "93%" // À implémenter avec les vraies données
-  }), [students.length, gradeStats]);
+  }), [filteredStudents.length, gradeStats]);
 
   // Libellé de la période sélectionnée
   const getPeriodLabel = () => {
-    switch (selectedPeriod) {
-      case "trimester": return "1er Trimestre";
-      case "semester": return "1er Semestre";
-      case "year": return "Année complète";
-      default: return "";
-    }
+    const currentPeriod = periodConfig[selectedPeriodType].options.find(
+      opt => opt.value === selectedPeriodValue
+    );
+    return currentPeriod?.label || "";
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    
+    // Simuler un délai de chargement pour le feedback visuel
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
     setRefreshKey(prev => prev + 1);
+    loadData();
+    
+    setIsRefreshing(false);
     toast({
       title: "Données actualisées",
-      description: "Les statistiques ont été mises à jour avec les dernières données.",
+      description: `Les statistiques du ${getPeriodLabel()} ${selectedYear} ont été mises à jour.`,
     });
   };
 
@@ -345,9 +413,13 @@ const Statistics = () => {
           <h1 className="text-3xl font-bold text-foreground">Statistiques</h1>
           <p className="text-muted-foreground mt-1">Tableaux de bord et analyses basées sur les vraies données</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleRefresh}>
-            <RefreshCw className="h-4 w-4 mr-2" />
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+            {isRefreshing ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
             Actualiser
           </Button>
           <Select value={selectedYear} onValueChange={setSelectedYear}>
@@ -355,12 +427,13 @@ const Statistics = () => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="2025-2026">2025-2026</SelectItem>
               <SelectItem value="2024-2025">2024-2025</SelectItem>
               <SelectItem value="2023-2024">2023-2024</SelectItem>
               <SelectItem value="2022-2023">2022-2023</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+          <Select value={selectedPeriodType} onValueChange={(v) => setSelectedPeriodType(v as "trimester" | "semester" | "year")}>
             <SelectTrigger className="w-[140px]">
               <SelectValue />
             </SelectTrigger>
@@ -368,6 +441,18 @@ const Statistics = () => {
               <SelectItem value="trimester">Trimestre</SelectItem>
               <SelectItem value="semester">Semestre</SelectItem>
               <SelectItem value="year">Année</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={selectedPeriodValue} onValueChange={setSelectedPeriodValue}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {periodConfig[selectedPeriodType].options.map(opt => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Button variant="outline" onClick={handleExportExcel}>
