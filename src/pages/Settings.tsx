@@ -7,15 +7,18 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Building, Globe, Lock, Palette, Save, Shield, Users } from "lucide-react";
+import { Building, Check, Globe, Lock, Palette, Save, Shield, Users } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useTheme } from "@/hooks/useTheme";
+import { cn } from "@/lib/utils";
 
 const Settings = () => {
   const [schoolName, setSchoolName] = useState("École Saint-Exupéry");
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [autoBackup, setAutoBackup] = useState(true);
   const [language, setLanguage] = useState("fr");
-  const [theme, setTheme] = useState("light");
+  
+  const { settings, updateSettings, primaryColors } = useTheme();
 
   const handleSave = () => {
     toast({
@@ -35,6 +38,38 @@ const Settings = () => {
     toast({
       title: "Utilisateur ajouté",
       description: "Le nouvel utilisateur a été créé avec succès",
+    });
+  };
+
+  const handleThemeChange = (theme: "light" | "dark" | "auto") => {
+    updateSettings({ theme });
+    toast({
+      title: "Thème modifié",
+      description: `Le thème ${theme === "light" ? "clair" : theme === "dark" ? "sombre" : "automatique"} a été appliqué`,
+    });
+  };
+
+  const handleColorChange = (colorKey: string) => {
+    updateSettings({ primaryColor: colorKey });
+    toast({
+      title: "Couleur modifiée",
+      description: `La couleur ${primaryColors[colorKey]?.name || colorKey} a été appliquée`,
+    });
+  };
+
+  const handleCompactModeChange = (enabled: boolean) => {
+    updateSettings({ compactMode: enabled });
+    toast({
+      title: enabled ? "Mode compact activé" : "Mode compact désactivé",
+      description: enabled ? "L'espacement a été réduit" : "L'espacement normal a été restauré",
+    });
+  };
+
+  const handleAnimationsChange = (enabled: boolean) => {
+    updateSettings({ animations: enabled });
+    toast({
+      title: enabled ? "Animations activées" : "Animations désactivées",
+      description: enabled ? "Les animations sont maintenant actives" : "Les animations ont été désactivées",
     });
   };
 
@@ -321,47 +356,87 @@ const Settings = () => {
                 Personnalisez l'apparence de l'application
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
+            <CardContent className="space-y-6">
+              <div className="space-y-3">
                 <Label htmlFor="theme">Thème</Label>
-                <Select value={theme} onValueChange={setTheme}>
+                <Select 
+                  value={settings.theme} 
+                  onValueChange={(value: "light" | "dark" | "auto") => handleThemeChange(value)}
+                >
                   <SelectTrigger id="theme">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="light">Clair</SelectItem>
-                    <SelectItem value="dark">Sombre</SelectItem>
-                    <SelectItem value="auto">Automatique</SelectItem>
+                    <SelectItem value="light">☀️ Clair</SelectItem>
+                    <SelectItem value="dark">🌙 Sombre</SelectItem>
+                    <SelectItem value="auto">🔄 Automatique (système)</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-sm text-muted-foreground">
+                  {settings.theme === "auto" 
+                    ? "Le thème s'adapte automatiquement aux préférences de votre système"
+                    : settings.theme === "dark"
+                    ? "Le thème sombre est activé"
+                    : "Le thème clair est activé"
+                  }
+                </p>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="primary-color">Couleur principale</Label>
-                <div className="flex gap-2">
-                  <div className="w-10 h-10 rounded bg-primary cursor-pointer" />
-                  <div className="w-10 h-10 rounded bg-blue-500 cursor-pointer" />
-                  <div className="w-10 h-10 rounded bg-green-500 cursor-pointer" />
-                  <div className="w-10 h-10 rounded bg-purple-500 cursor-pointer" />
-                  <div className="w-10 h-10 rounded bg-orange-500 cursor-pointer" />
+              
+              <div className="space-y-3">
+                <Label>Couleur principale</Label>
+                <div className="flex gap-3 flex-wrap">
+                  {Object.entries(primaryColors).map(([key, { name }]) => (
+                    <button
+                      key={key}
+                      onClick={() => handleColorChange(key)}
+                      className={cn(
+                        "w-12 h-12 rounded-lg cursor-pointer transition-all duration-200 flex items-center justify-center border-2",
+                        settings.primaryColor === key 
+                          ? "ring-2 ring-offset-2 ring-primary border-primary scale-110" 
+                          : "border-transparent hover:scale-105",
+                        key === "blue" && "bg-blue-500",
+                        key === "green" && "bg-green-500",
+                        key === "purple" && "bg-purple-500",
+                        key === "orange" && "bg-orange-500",
+                        key === "red" && "bg-red-500"
+                      )}
+                      title={name}
+                    >
+                      {settings.primaryColor === key && (
+                        <Check className="h-5 w-5 text-white" />
+                      )}
+                    </button>
+                  ))}
                 </div>
+                <p className="text-sm text-muted-foreground">
+                  Couleur actuelle : {primaryColors[settings.primaryColor]?.name || "Bleu"}
+                </p>
               </div>
+              
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Mode compact</Label>
                   <p className="text-sm text-muted-foreground">
-                    Réduire l'espacement entre les éléments
+                    Réduire l'espacement entre les éléments pour afficher plus de contenu
                   </p>
                 </div>
-                <Switch />
+                <Switch 
+                  checked={settings.compactMode}
+                  onCheckedChange={handleCompactModeChange}
+                />
               </div>
+              
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label>Animations</Label>
                   <p className="text-sm text-muted-foreground">
-                    Activer les animations et transitions
+                    Activer les animations et transitions fluides
                   </p>
                 </div>
-                <Switch defaultChecked />
+                <Switch 
+                  checked={settings.animations}
+                  onCheckedChange={handleAnimationsChange}
+                />
               </div>
             </CardContent>
           </Card>
