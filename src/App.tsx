@@ -18,6 +18,7 @@ import Equipment from "./pages/Equipment";
 import Statistics from "./pages/Statistics";
 import Settings from "./pages/Settings";
 import Staff from "./pages/Staff";
+import Subjects from "./pages/Subjects";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="equipment" element={<Equipment />} />
             <Route path="statistics" element={<Statistics />} />
             <Route path="staff" element={<Staff />} />
+            <Route path="subjects" element={<Subjects />} />
             <Route path="settings" element={<Settings />} />
           </Route>
           <Route path="*" element={<NotFound />} />

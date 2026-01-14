@@ -31,6 +31,7 @@ const menuItems = [
   { icon: BarChart3, label: "Tableau de bord", path: "/dashboard" },
   { icon: Users, label: "Élèves", path: "/students" },
   { icon: UserCog, label: "Personnel", path: "/staff" },
+  { icon: BookOpen, label: "Matières", path: "/subjects" },
   { icon: BookOpen, label: "Notes", path: "/grades" },
   { icon: ClipboardList, label: "Bulletins", path: "/reports" },
   { icon: UserCheck, label: "Absences", path: "/attendance" },
