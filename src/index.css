@@ -196,4 +196,31 @@
   .glass {
     @apply backdrop-blur-md bg-background/80 border border-border/50;
   }
+  
+  /* Compact Mode */
+  .compact-mode .p-6 {
+    @apply p-4;
+  }
+  
+  .compact-mode .space-y-6 > * + * {
+    margin-top: 1rem;
+  }
+  
+  .compact-mode .space-y-4 > * + * {
+    margin-top: 0.5rem;
+  }
+  
+  .compact-mode .gap-6 {
+    gap: 1rem;
+  }
+  
+  .compact-mode .gap-4 {
+    gap: 0.5rem;
+  }
+  
+  /* No Animations Mode */
+  .no-animations * {
+    animation-duration: 0ms !important;
+    transition-duration: 0ms !important;
+  }
 }
