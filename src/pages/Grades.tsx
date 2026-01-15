@@ -134,14 +134,39 @@ interface Controle {
   coefficient: number;
 }
 
+// Mapping des noms de matières vers les clés
+const subjectKeyMap: Record<string, string> = {
+  "Mathématiques": "math",
+  "Français": "french",
+  "Physique-Chimie": "physics",
+  "Histoire-Géo": "history",
+  "Anglais": "english",
+  "SVT": "svt"
+};
+
+// Structure des notes par trimestre
+interface GradesByPeriod {
+  trimestre1: Record<string, number>;
+  trimestre2: Record<string, number>;
+  trimestre3: Record<string, number>;
+}
+
+interface StudentGradeData {
+  id: number;
+  studentName: string;
+  matricule: string;
+  class: string;
+  grades: Record<string, GradesByPeriod>;
+}
+
 export default function Grades() {
   const { toast } = useToast();
   const [schoolLevel, setSchoolLevel] = useState<"college" | "lycee">("college");
   const [selectedClass, setSelectedClass] = useState("6ème A");
-  const [selectedSubject, setSelectedSubject] = useState("all");
-  const [selectedPeriod, setSelectedPeriod] = useState("trimestre1");
+  const [selectedSubject, setSelectedSubject] = useState("Mathématiques");
+  const [selectedPeriod, setSelectedPeriod] = useState<"trimestre1" | "trimestre2" | "trimestre3">("trimestre1");
   const [editMode, setEditMode] = useState(false);
-  const [studentGrades, setStudentGrades] = useState(initialStudentGrades);
+  const [studentGrades, setStudentGrades] = useState<StudentGradeData[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [addStudentDialog, setAddStudentDialog] = useState(false);
   const [controlesDialogOpen, setControlesDialogOpen] = useState(false);
@@ -259,15 +284,44 @@ export default function Grades() {
     saveControles(updatedControles);
   };
   
+  // Créer une structure de notes vide pour un élève
+  const createEmptyGrades = (): Record<string, GradesByPeriod> => {
+    const emptyPeriod = (): Record<string, number> => {
+      const notes: Record<string, number> = {};
+      controles.forEach(c => { notes[c.id] = 0; });
+      return notes;
+    };
+    
+    return {
+      math: { trimestre1: emptyPeriod(), trimestre2: emptyPeriod(), trimestre3: emptyPeriod() },
+      french: { trimestre1: emptyPeriod(), trimestre2: emptyPeriod(), trimestre3: emptyPeriod() },
+      physics: { trimestre1: emptyPeriod(), trimestre2: emptyPeriod(), trimestre3: emptyPeriod() },
+      history: { trimestre1: emptyPeriod(), trimestre2: emptyPeriod(), trimestre3: emptyPeriod() },
+      english: { trimestre1: emptyPeriod(), trimestre2: emptyPeriod(), trimestre3: emptyPeriod() },
+      svt: { trimestre1: emptyPeriod(), trimestre2: emptyPeriod(), trimestre3: emptyPeriod() }
+    };
+  };
+
+  // Charger les notes depuis localStorage
+  const loadGradesFromStorage = (): StudentGradeData[] => {
+    const savedGrades = localStorage.getItem('studentGradesData');
+    if (savedGrades) {
+      return JSON.parse(savedGrades);
+    }
+    return [];
+  };
+
   // Charger les élèves depuis Students.tsx au montage et quand ils changent
   const loadStudentsFromStorage = () => {
     const storedStudents = localStorage.getItem('studentsData');
+    const existingGrades = loadGradesFromStorage();
+    
     if (storedStudents) {
       const students = JSON.parse(storedStudents);
       
       // Créer ou mettre à jour les entrées de notes pour tous les élèves
-      const updatedGrades = students.map((student: any) => {
-        const existingGrade = studentGrades.find(g => g.matricule === student.matricule);
+      const updatedGrades: StudentGradeData[] = students.map((student: any) => {
+        const existingGrade = existingGrades.find(g => g.matricule === student.matricule);
         if (existingGrade) {
           return existingGrade;
         }
@@ -277,21 +331,12 @@ export default function Grades() {
           studentName: `${student.firstName} ${student.lastName}`,
           matricule: student.matricule,
           class: student.class,
-          grades: {
-            math: { note1: 0, note2: 0, note3: 0, exam: 0 },
-            french: { note1: 0, note2: 0, note3: 0, exam: 0 },
-            physics: { note1: 0, note2: 0, note3: 0, exam: 0 },
-            history: { note1: 0, note2: 0, note3: 0, exam: 0 },
-            english: { note1: 0, note2: 0, note3: 0, exam: 0 },
-            svt: { note1: 0, note2: 0, note3: 0, exam: 0 }
-          }
+          grades: createEmptyGrades()
         };
       });
       
-      // Conserver les notes existantes et ajouter les nouveaux élèves
-      const existingMatricules = studentGrades.map(g => g.matricule);
-      const newStudentGrades = updatedGrades.filter((g: any) => !existingMatricules.includes(g.matricule));
-      setStudentGrades([...studentGrades, ...newStudentGrades]);
+      setStudentGrades(updatedGrades);
+      localStorage.setItem('studentGradesData', JSON.stringify(updatedGrades));
     }
   };
 
@@ -309,8 +354,8 @@ export default function Grades() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Calculate moyenne for each subject based on active controles
-  const calculateMoyenne = (notes: any) => {
+  // Calculate moyenne for notes of a period
+  const calculateMoyenne = (notes: Record<string, number>) => {
     let total = 0;
     let totalCoef = 0;
     
@@ -323,8 +368,16 @@ export default function Grades() {
     return totalCoef > 0 ? (total / totalCoef).toFixed(1) : '0.0';
   };
 
-  // Calculate moyenne générale for a student
-  const calculateMoyenneGenerale = (grades: any) => {
+  // Get grades for current subject and period
+  const getStudentSubjectGrades = (student: StudentGradeData): Record<string, number> => {
+    const subjectKey = subjectKeyMap[selectedSubject] || 'math';
+    const subjectGrades = student.grades[subjectKey];
+    if (!subjectGrades) return {};
+    return subjectGrades[selectedPeriod] || {};
+  };
+
+  // Calculate moyenne générale for a student for a specific period
+  const calculateMoyenneGenerale = (grades: Record<string, GradesByPeriod>, period: "trimestre1" | "trimestre2" | "trimestre3") => {
     const coefficients: Record<string, number> = {
       math: 4,
       french: 3,
@@ -337,33 +390,47 @@ export default function Grades() {
     let totalPoints = 0;
     let totalCoeff = 0;
     
-    Object.entries(grades).forEach(([subject, notes]: [string, any]) => {
+    Object.entries(grades).forEach(([subject, periodGrades]) => {
+      const notes = periodGrades[period] || {};
       const moyenne = parseFloat(calculateMoyenne(notes));
       totalPoints += moyenne * (coefficients[subject] || 1);
       totalCoeff += coefficients[subject] || 1;
     });
     
-    return (totalPoints / totalCoeff).toFixed(1);
+    return totalCoeff > 0 ? (totalPoints / totalCoeff).toFixed(1) : '0.0';
   };
 
-  // Update grade for a specific student and subject
-  const updateGrade = (studentId: number, subject: string, noteType: string, value: number) => {
-    setStudentGrades(prev => prev.map(student => {
-      if (student.id === studentId) {
-        const updatedGrades = {
-          ...student.grades,
-          [subject]: {
-            ...student.grades[subject as keyof typeof student.grades],
-            [noteType]: value
-          }
-        };
-        return {
-          ...student,
-          grades: updatedGrades
-        };
-      }
-      return student;
-    }));
+  // Update grade for a specific student, subject, period and control
+  const updateGrade = (studentId: number, noteType: string, value: number) => {
+    const subjectKey = subjectKeyMap[selectedSubject] || 'math';
+    
+    setStudentGrades(prev => {
+      const updated = prev.map(student => {
+        if (student.id === studentId) {
+          const currentSubjectGrades = student.grades[subjectKey] || createEmptyGrades()[subjectKey];
+          const currentPeriodGrades = currentSubjectGrades[selectedPeriod] || {};
+          
+          return {
+            ...student,
+            grades: {
+              ...student.grades,
+              [subjectKey]: {
+                ...currentSubjectGrades,
+                [selectedPeriod]: {
+                  ...currentPeriodGrades,
+                  [noteType]: value
+                }
+              }
+            }
+          };
+        }
+        return student;
+      });
+      
+      // Sauvegarder automatiquement
+      localStorage.setItem('studentGradesData', JSON.stringify(updated));
+      return updated;
+    });
   };
 
   // Calculate statistics
@@ -435,24 +502,31 @@ export default function Grades() {
   const handleNewEntry = () => {
     setEditMode(true);
     
-    // Réinitialiser les notes à 0 pour permettre une nouvelle saisie
-    const resetGrades = studentGrades.map(student => ({
-      ...student,
-      grades: {
-        math: { note1: 0, note2: 0, note3: 0, exam: 0 },
-        french: { note1: 0, note2: 0, note3: 0, exam: 0 },
-        physics: { note1: 0, note2: 0, note3: 0, exam: 0 },
-        history: { note1: 0, note2: 0, note3: 0, exam: 0 },
-        english: { note1: 0, note2: 0, note3: 0, exam: 0 },
-        svt: { note1: 0, note2: 0, note3: 0, exam: 0 }
-      }
-    }));
+    // Réinitialiser les notes à 0 pour la matière et le trimestre sélectionné
+    const subjectKey = subjectKeyMap[selectedSubject] || 'math';
+    
+    const resetGrades = studentGrades.map(student => {
+      const emptyPeriodNotes: Record<string, number> = {};
+      controles.forEach(c => { emptyPeriodNotes[c.id] = 0; });
+      
+      return {
+        ...student,
+        grades: {
+          ...student.grades,
+          [subjectKey]: {
+            ...student.grades[subjectKey],
+            [selectedPeriod]: emptyPeriodNotes
+          }
+        }
+      };
+    });
     
     setStudentGrades(resetGrades);
+    localStorage.setItem('studentGradesData', JSON.stringify(resetGrades));
     
     toast({
       title: "Nouvelle saisie",
-      description: "Les notes ont été réinitialisées. Vous pouvez maintenant saisir de nouvelles notes.",
+      description: `Les notes de ${selectedSubject} (${selectedPeriod === 'trimestre1' ? 'Trimestre 1' : selectedPeriod === 'trimestre2' ? 'Trimestre 2' : 'Trimestre 3'}) ont été réinitialisées.`,
     });
   };
 
@@ -469,22 +543,17 @@ export default function Grades() {
       );
       
       if (newStudents.length > 0) {
-        const newGrades = newStudents.map((student: any) => ({
+        const newGrades: StudentGradeData[] = newStudents.map((student: any) => ({
           id: studentGrades.length + student.id,
           studentName: `${student.firstName} ${student.lastName}`,
           matricule: student.matricule,
           class: student.class,
-          grades: {
-            math: { note1: 0, note2: 0, note3: 0, exam: 0 },
-            french: { note1: 0, note2: 0, note3: 0, exam: 0 },
-            physics: { note1: 0, note2: 0, note3: 0, exam: 0 },
-            history: { note1: 0, note2: 0, note3: 0, exam: 0 },
-            english: { note1: 0, note2: 0, note3: 0, exam: 0 },
-            svt: { note1: 0, note2: 0, note3: 0, exam: 0 }
-          }
+          grades: createEmptyGrades()
         }));
         
-        setStudentGrades([...studentGrades, ...newGrades]);
+        const allGrades = [...studentGrades, ...newGrades];
+        setStudentGrades(allGrades);
+        localStorage.setItem('studentGradesData', JSON.stringify(allGrades));
         toast({
           title: "Synchronisation réussie",
           description: `${newGrades.length} nouveaux élèves ajoutés.`,
@@ -535,22 +604,17 @@ export default function Grades() {
     const stats: Record<string, { moyenne: number, success: number, total: number }> = {};
     
     subjects.forEach(subject => {
-      const subjectKey = subject.name.toLowerCase()
-        .replace('mathématiques', 'math')
-        .replace('français', 'french')
-        .replace('physique-chimie', 'physics')
-        .replace('histoire-géo', 'history')
-        .replace('anglais', 'english')
-        .replace('svt', 'svt');
+      const subjectKey = subjectKeyMap[subject.name] || 'math';
       
       let total = 0;
       let sum = 0;
       let passCount = 0;
       
       filteredStudents.forEach(student => {
-        const grades = student.grades[subjectKey as keyof typeof student.grades];
-        if (grades) {
-          const moyenne = parseFloat(calculateMoyenne(grades));
+        const subjectGrades = student.grades[subjectKey];
+        if (subjectGrades) {
+          const periodNotes = subjectGrades[selectedPeriod] || {};
+          const moyenne = parseFloat(calculateMoyenne(periodNotes));
           if (moyenne > 0) {
             sum += moyenne;
             total++;
@@ -567,7 +631,7 @@ export default function Grades() {
     });
     
     return stats;
-  }, [filteredStudents]);
+  }, [filteredStudents, selectedPeriod]);
 
   return (
     <div className="p-6 space-y-6">
@@ -797,7 +861,6 @@ export default function Grades() {
                     <SelectValue placeholder="Sélectionner une matière" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Toutes les matières</SelectItem>
                     {subjects.map(subject => (
                       <SelectItem key={subject.id} value={subject.name}>
                         {subject.name}
@@ -806,7 +869,7 @@ export default function Grades() {
                   </SelectContent>
                 </Select>
                 
-                <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                <Select value={selectedPeriod} onValueChange={(value) => setSelectedPeriod(value as "trimestre1" | "trimestre2" | "trimestre3")}>
                   <SelectTrigger>
                     <SelectValue placeholder="Période" />
                   </SelectTrigger>
@@ -845,51 +908,54 @@ export default function Grades() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredStudents.map((student) => (
-                      <TableRow key={student.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{student.studentName}</p>
-                            <p className="text-sm text-muted-foreground">{student.matricule}</p>
-                          </div>
-                        </TableCell>
-                        {activeControles.map(controle => (
-                          <TableCell key={controle.id} className="text-center">
-                            {editMode ? (
-                              <Input 
-                                type="number" 
-                                defaultValue={student.grades.math[controle.id as keyof typeof student.grades.math] || 0} 
-                                className="w-16 mx-auto"
-                                min="0"
-                                max="20"
-                                step="0.5"
-                                onChange={(e) => updateGrade(student.id, 'math', controle.id, parseFloat(e.target.value) || 0)}
-                              />
-                            ) : (
-                              <span className={getGradeColor(student.grades.math[controle.id as keyof typeof student.grades.math] || 0)}>
-                                {student.grades.math[controle.id as keyof typeof student.grades.math] || 0}
-                              </span>
-                            )}
+                    {filteredStudents.map((student) => {
+                      const currentGrades = getStudentSubjectGrades(student);
+                      return (
+                        <TableRow key={student.id}>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{student.studentName}</p>
+                              <p className="text-sm text-muted-foreground">{student.matricule}</p>
+                            </div>
                           </TableCell>
-                        ))}
-                        <TableCell className="text-center">
-                          <span className={`font-bold ${getGradeColor(parseFloat(calculateMoyenne(student.grades.math)))}`}>
-                            {calculateMoyenne(student.grades.math)}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {(() => {
-                            const moyenneNum = parseFloat(calculateMoyenne(student.grades.math));
-                            const appreciation = getAppreciationBadge(moyenneNum);
-                            return (
-                              <Badge className={appreciation.className}>
-                                {appreciation.label}
-                              </Badge>
-                            );
-                          })()}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                          {activeControles.map(controle => (
+                            <TableCell key={controle.id} className="text-center">
+                              {editMode ? (
+                                <Input 
+                                  type="number" 
+                                  defaultValue={currentGrades[controle.id] || 0} 
+                                  className="w-16 mx-auto"
+                                  min="0"
+                                  max="20"
+                                  step="0.5"
+                                  onChange={(e) => updateGrade(student.id, controle.id, parseFloat(e.target.value) || 0)}
+                                />
+                              ) : (
+                                <span className={getGradeColor(currentGrades[controle.id] || 0)}>
+                                  {currentGrades[controle.id] || 0}
+                                </span>
+                              )}
+                            </TableCell>
+                          ))}
+                          <TableCell className="text-center">
+                            <span className={`font-bold ${getGradeColor(parseFloat(calculateMoyenne(currentGrades)))}`}>
+                              {calculateMoyenne(currentGrades)}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {(() => {
+                              const moyenneNum = parseFloat(calculateMoyenne(currentGrades));
+                              const appreciation = getAppreciationBadge(moyenneNum);
+                              return (
+                                <Badge className={appreciation.className}>
+                                  {appreciation.label}
+                                </Badge>
+                              );
+                            })()}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
@@ -968,9 +1034,9 @@ export default function Grades() {
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="text-sm text-muted-foreground">Moyenne Générale</p>
+                            <p className="text-sm text-muted-foreground">Moyenne Générale ({selectedPeriod === 'trimestre1' ? 'T1' : selectedPeriod === 'trimestre2' ? 'T2' : 'T3'})</p>
                             <p className="text-2xl font-bold">
-                              {calculateMoyenneGenerale(student.grades)}/20
+                              {calculateMoyenneGenerale(student.grades, selectedPeriod)}/20
                             </p>
                           </div>
                         </div>
@@ -983,7 +1049,8 @@ export default function Grades() {
                                               subject === 'physics' ? 'Physique-Chimie' :
                                               subject === 'history' ? 'Histoire-Géo' :
                                               subject === 'english' ? 'Anglais' : 'SVT';
-                            const moyenne = parseFloat(calculateMoyenne(grades));
+                            const periodNotes = grades[selectedPeriod] || {};
+                            const moyenne = parseFloat(calculateMoyenne(periodNotes));
                             return (
                               <div key={subject} className="space-y-1">
                                 <p className="text-sm font-medium">{subjectName}</p>
@@ -1077,11 +1144,11 @@ export default function Grades() {
                     <div className="flex justify-between">
                       <span>Excellent (16-20)</span>
                       <span className="font-bold">
-                        {filteredStudents.filter(s => parseFloat(calculateMoyenneGenerale(s.grades)) >= 16).length}
+                        {filteredStudents.filter(s => parseFloat(calculateMoyenneGenerale(s.grades, selectedPeriod)) >= 16).length}
                       </span>
                     </div>
                     <Progress 
-                      value={(filteredStudents.filter(s => parseFloat(calculateMoyenneGenerale(s.grades)) >= 16).length / filteredStudents.length) * 100} 
+                      value={filteredStudents.length > 0 ? (filteredStudents.filter(s => parseFloat(calculateMoyenneGenerale(s.grades, selectedPeriod)) >= 16).length / filteredStudents.length) * 100 : 0} 
                       className="h-2"
                     />
                   </div>
@@ -1090,16 +1157,16 @@ export default function Grades() {
                       <span>Très Bien (14-16)</span>
                       <span className="font-bold">
                         {filteredStudents.filter(s => {
-                          const m = parseFloat(calculateMoyenneGenerale(s.grades));
+                          const m = parseFloat(calculateMoyenneGenerale(s.grades, selectedPeriod));
                           return m >= 14 && m < 16;
                         }).length}
                       </span>
                     </div>
                     <Progress 
-                      value={(filteredStudents.filter(s => {
-                        const m = parseFloat(calculateMoyenneGenerale(s.grades));
+                      value={filteredStudents.length > 0 ? (filteredStudents.filter(s => {
+                        const m = parseFloat(calculateMoyenneGenerale(s.grades, selectedPeriod));
                         return m >= 14 && m < 16;
-                      }).length / filteredStudents.length) * 100} 
+                      }).length / filteredStudents.length) * 100 : 0} 
                       className="h-2"
                     />
                   </div>
@@ -1108,16 +1175,16 @@ export default function Grades() {
                       <span>Bien (12-14)</span>
                       <span className="font-bold">
                         {filteredStudents.filter(s => {
-                          const m = parseFloat(calculateMoyenneGenerale(s.grades));
+                          const m = parseFloat(calculateMoyenneGenerale(s.grades, selectedPeriod));
                           return m >= 12 && m < 14;
                         }).length}
                       </span>
                     </div>
                     <Progress 
-                      value={(filteredStudents.filter(s => {
-                        const m = parseFloat(calculateMoyenneGenerale(s.grades));
+                      value={filteredStudents.length > 0 ? (filteredStudents.filter(s => {
+                        const m = parseFloat(calculateMoyenneGenerale(s.grades, selectedPeriod));
                         return m >= 12 && m < 14;
-                      }).length / filteredStudents.length) * 100} 
+                      }).length / filteredStudents.length) * 100 : 0} 
                       className="h-2"
                     />
                   </div>
@@ -1126,16 +1193,16 @@ export default function Grades() {
                       <span>Passable (10-12)</span>
                       <span className="font-bold">
                         {filteredStudents.filter(s => {
-                          const m = parseFloat(calculateMoyenneGenerale(s.grades));
+                          const m = parseFloat(calculateMoyenneGenerale(s.grades, selectedPeriod));
                           return m >= 10 && m < 12;
                         }).length}
                       </span>
                     </div>
                     <Progress 
-                      value={(filteredStudents.filter(s => {
-                        const m = parseFloat(calculateMoyenneGenerale(s.grades));
+                      value={filteredStudents.length > 0 ? (filteredStudents.filter(s => {
+                        const m = parseFloat(calculateMoyenneGenerale(s.grades, selectedPeriod));
                         return m >= 10 && m < 12;
-                      }).length / filteredStudents.length) * 100} 
+                      }).length / filteredStudents.length) * 100 : 0} 
                       className="h-2"
                     />
                   </div>
@@ -1143,11 +1210,11 @@ export default function Grades() {
                     <div className="flex justify-between">
                       <span>Insuffisant (&lt;10)</span>
                       <span className="font-bold">
-                        {filteredStudents.filter(s => parseFloat(calculateMoyenneGenerale(s.grades)) < 10).length}
+                        {filteredStudents.filter(s => parseFloat(calculateMoyenneGenerale(s.grades, selectedPeriod)) < 10).length}
                       </span>
                     </div>
                     <Progress 
-                      value={(filteredStudents.filter(s => parseFloat(calculateMoyenneGenerale(s.grades)) < 10).length / filteredStudents.length) * 100} 
+                      value={filteredStudents.length > 0 ? (filteredStudents.filter(s => parseFloat(calculateMoyenneGenerale(s.grades, selectedPeriod)) < 10).length / filteredStudents.length) * 100 : 0} 
                       className="h-2"
                     />
                   </div>
@@ -1163,8 +1230,8 @@ export default function Grades() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {filteredStudents
-                  .sort((a, b) => parseFloat(calculateMoyenneGenerale(b.grades)) - parseFloat(calculateMoyenneGenerale(a.grades)))
+                {[...filteredStudents]
+                  .sort((a, b) => parseFloat(calculateMoyenneGenerale(b.grades, selectedPeriod)) - parseFloat(calculateMoyenneGenerale(a.grades, selectedPeriod)))
                   .slice(0, 10)
                   .map((student, index) => (
                     <div key={student.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50">
@@ -1184,10 +1251,10 @@ export default function Grades() {
                       </div>
                       <div className="text-right">
                         <p className="font-bold text-lg">
-                          {calculateMoyenneGenerale(student.grades)}/20
+                          {calculateMoyenneGenerale(student.grades, selectedPeriod)}/20
                         </p>
                         {(() => {
-                          const appreciation = getAppreciationBadge(parseFloat(calculateMoyenneGenerale(student.grades)));
+                          const appreciation = getAppreciationBadge(parseFloat(calculateMoyenneGenerale(student.grades, selectedPeriod)));
                           return (
                             <Badge className={appreciation.className}>
                               {appreciation.label}
