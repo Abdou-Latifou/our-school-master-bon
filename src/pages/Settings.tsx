@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Building, Check, Globe, Lock, Palette, Save, Shield, Users, GraduationCap, Plus, X } from "lucide-react";
+import { Building, Check, Globe, Lock, Palette, Save, Shield, Users, GraduationCap, Plus, X, Upload, Image } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
@@ -30,14 +30,24 @@ const Settings = () => {
   const [classes, setClasses] = useState<ClassesConfig>(defaultClasses);
   const [newCollegeClass, setNewCollegeClass] = useState("");
   const [newLyceeClass, setNewLyceeClass] = useState("");
+  const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
+  const [schoolDisplayName, setSchoolDisplayName] = useState("OurSchool");
   
   const { settings, updateSettings, primaryColors } = useTheme();
 
-  // Charger les classes depuis localStorage
+  // Charger les classes et le logo depuis localStorage
   useEffect(() => {
     const savedClasses = localStorage.getItem("schoolClasses");
     if (savedClasses) {
       setClasses(JSON.parse(savedClasses));
+    }
+    const savedLogo = localStorage.getItem("schoolLogo");
+    if (savedLogo) {
+      setSchoolLogo(savedLogo);
+    }
+    const savedDisplayName = localStorage.getItem("schoolDisplayName");
+    if (savedDisplayName) {
+      setSchoolDisplayName(savedDisplayName);
     }
   }, []);
 
@@ -47,6 +57,64 @@ const Settings = () => {
     localStorage.setItem("schoolClasses", JSON.stringify(newClasses));
     // Dispatch event pour synchroniser avec les autres pages
     window.dispatchEvent(new Event("storage"));
+  };
+
+  // Gérer le téléchargement du logo
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Vérifier le type de fichier
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner une image",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Vérifier la taille (max 500KB pour localStorage)
+    if (file.size > 500 * 1024) {
+      toast({
+        title: "Erreur",
+        description: "L'image est trop grande (max 500KB)",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      setSchoolLogo(base64);
+      localStorage.setItem("schoolLogo", base64);
+      window.dispatchEvent(new Event("storage"));
+      toast({
+        title: "Logo mis à jour",
+        description: "Le logo de l'école a été modifié"
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeLogo = () => {
+    setSchoolLogo(null);
+    localStorage.removeItem("schoolLogo");
+    window.dispatchEvent(new Event("storage"));
+    toast({
+      title: "Logo supprimé",
+      description: "Le logo par défaut sera utilisé"
+    });
+  };
+
+  const saveSchoolDisplayName = () => {
+    localStorage.setItem("schoolDisplayName", schoolDisplayName);
+    window.dispatchEvent(new Event("storage"));
+    toast({
+      title: "Nom mis à jour",
+      description: "Le nom affiché a été modifié"
+    });
   };
 
   const addClass = (level: "college" | "lycee") => {
@@ -224,6 +292,85 @@ const Settings = () => {
                     <SelectItem value="2024-2025">2024-2025</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Logo et nom affiché */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Image className="h-5 w-5" />
+                Logo et identité visuelle
+              </CardTitle>
+              <CardDescription>
+                Personnalisez le logo et le nom affiché dans la barre latérale
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Nom affiché */}
+              <div className="space-y-2">
+                <Label htmlFor="display-name">Nom affiché (sidebar)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="display-name"
+                    value={schoolDisplayName}
+                    onChange={(e) => setSchoolDisplayName(e.target.value)}
+                    placeholder="OurSchool"
+                    className="max-w-xs"
+                  />
+                  <Button onClick={saveSchoolDisplayName} size="sm">
+                    <Save className="h-4 w-4 mr-1" />
+                    Enregistrer
+                  </Button>
+                </div>
+              </div>
+
+              {/* Logo */}
+              <div className="space-y-3">
+                <Label>Logo de l'établissement</Label>
+                <div className="flex items-start gap-6">
+                  {/* Aperçu du logo */}
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-20 h-20 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center overflow-hidden bg-muted/50">
+                      {schoolLogo ? (
+                        <img 
+                          src={schoolLogo} 
+                          alt="Logo école" 
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <GraduationCap className="w-10 h-10 text-muted-foreground" />
+                      )}
+                    </div>
+                    <span className="text-xs text-muted-foreground">Aperçu</span>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex flex-col gap-2">
+                    <div className="relative">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                      <Button variant="outline" size="sm" className="pointer-events-none">
+                        <Upload className="h-4 w-4 mr-2" />
+                        Télécharger un logo
+                      </Button>
+                    </div>
+                    {schoolLogo && (
+                      <Button variant="ghost" size="sm" onClick={removeLogo} className="text-destructive hover:text-destructive">
+                        <X className="h-4 w-4 mr-2" />
+                        Supprimer le logo
+                      </Button>
+                    )}
+                    <p className="text-xs text-muted-foreground max-w-[200px]">
+                      Format: JPG, PNG, GIF. Taille max: 500KB. Recommandé: image carrée.
+                    </p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>

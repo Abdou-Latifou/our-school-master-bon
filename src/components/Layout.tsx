@@ -65,6 +65,8 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [gestionOpen, setGestionOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
+  const [schoolDisplayName, setSchoolDisplayName] = useState("OurSchool");
 
   // Ouvrir automatiquement le menu Gestion si on est sur une de ses pages
   const isGestionPage = gestionSubItems.some(item => location.pathname === item.path);
@@ -75,6 +77,7 @@ export default function Layout() {
     }
   }, [isGestionPage]);
 
+  // Charger les données utilisateur
   useEffect(() => {
     const userData = localStorage.getItem("user");
     if (!userData) {
@@ -83,6 +86,20 @@ export default function Layout() {
       setUser(JSON.parse(userData));
     }
   }, [navigate]);
+
+  // Charger et écouter les changements de logo/nom
+  useEffect(() => {
+    const loadBranding = () => {
+      const savedLogo = localStorage.getItem("schoolLogo");
+      const savedName = localStorage.getItem("schoolDisplayName");
+      setSchoolLogo(savedLogo);
+      if (savedName) setSchoolDisplayName(savedName);
+    };
+
+    loadBranding();
+    window.addEventListener("storage", loadBranding);
+    return () => window.removeEventListener("storage", loadBranding);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("user");
@@ -118,11 +135,21 @@ export default function Layout() {
           {/* Logo */}
           <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
-                <GraduationCap className="w-6 h-6 text-primary-foreground" />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
+                {schoolLogo ? (
+                  <img 
+                    src={schoolLogo} 
+                    alt="Logo école" 
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-primary flex items-center justify-center">
+                    <GraduationCap className="w-6 h-6 text-primary-foreground" />
+                  </div>
+                )}
               </div>
               {sidebarOpen && (
-                <span className="text-xl font-bold text-gradient-primary">OurSchool</span>
+                <span className="text-xl font-bold text-gradient-primary">{schoolDisplayName}</span>
               )}
             </div>
             <Button
