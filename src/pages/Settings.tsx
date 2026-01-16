@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,18 +7,93 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Building, Check, Globe, Lock, Palette, Save, Shield, Users } from "lucide-react";
+import { Building, Check, Globe, Lock, Palette, Save, Shield, Users, GraduationCap, Plus, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
+
+interface ClassesConfig {
+  college: string[];
+  lycee: string[];
+}
+
+const defaultClasses: ClassesConfig = {
+  college: ["6ème A", "6ème B", "6ème C", "5ème A", "5ème B", "5ème C", "4ème A", "4ème B", "4ème C", "3ème A", "3ème B", "3ème C"],
+  lycee: ["Seconde A4", "Seconde CD", "1ère A4", "1ère D", "Tle A4", "Tle D"]
+};
 
 const Settings = () => {
   const [schoolName, setSchoolName] = useState("École Saint-Exupéry");
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [autoBackup, setAutoBackup] = useState(true);
   const [language, setLanguage] = useState("fr");
+  const [classes, setClasses] = useState<ClassesConfig>(defaultClasses);
+  const [newCollegeClass, setNewCollegeClass] = useState("");
+  const [newLyceeClass, setNewLyceeClass] = useState("");
   
   const { settings, updateSettings, primaryColors } = useTheme();
+
+  // Charger les classes depuis localStorage
+  useEffect(() => {
+    const savedClasses = localStorage.getItem("schoolClasses");
+    if (savedClasses) {
+      setClasses(JSON.parse(savedClasses));
+    }
+  }, []);
+
+  // Sauvegarder les classes dans localStorage
+  const saveClasses = (newClasses: ClassesConfig) => {
+    setClasses(newClasses);
+    localStorage.setItem("schoolClasses", JSON.stringify(newClasses));
+    // Dispatch event pour synchroniser avec les autres pages
+    window.dispatchEvent(new Event("storage"));
+  };
+
+  const addClass = (level: "college" | "lycee") => {
+    const newClassName = level === "college" ? newCollegeClass.trim() : newLyceeClass.trim();
+    if (!newClassName) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez saisir un nom de classe",
+        variant: "destructive"
+      });
+      return;
+    }
+    if (classes[level].includes(newClassName)) {
+      toast({
+        title: "Erreur",
+        description: "Cette classe existe déjà",
+        variant: "destructive"
+      });
+      return;
+    }
+    const newClasses = {
+      ...classes,
+      [level]: [...classes[level], newClassName]
+    };
+    saveClasses(newClasses);
+    if (level === "college") {
+      setNewCollegeClass("");
+    } else {
+      setNewLyceeClass("");
+    }
+    toast({
+      title: "Classe ajoutée",
+      description: `La classe "${newClassName}" a été ajoutée`
+    });
+  };
+
+  const removeClass = (level: "college" | "lycee", className: string) => {
+    const newClasses = {
+      ...classes,
+      [level]: classes[level].filter(c => c !== className)
+    };
+    saveClasses(newClasses);
+    toast({
+      title: "Classe supprimée",
+      description: `La classe "${className}" a été supprimée`
+    });
+  };
 
   const handleSave = () => {
     toast({
@@ -149,6 +224,82 @@ const Settings = () => {
                     <SelectItem value="2024-2025">2024-2025</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Gestion des classes */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <GraduationCap className="h-5 w-5" />
+                Classes disponibles
+              </CardTitle>
+              <CardDescription>
+                Gérez les classes de votre établissement (Collège et Lycée)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Classes Collège */}
+              <div className="space-y-3">
+                <Label className="text-base font-semibold">Collège</Label>
+                <div className="flex flex-wrap gap-2">
+                  {classes.college.map((className) => (
+                    <Badge key={className} variant="secondary" className="flex items-center gap-1 py-1 px-3">
+                      {className}
+                      <button
+                        onClick={() => removeClass("college", className)}
+                        className="ml-1 hover:text-destructive transition-colors"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Nouvelle classe (ex: 6ème D)"
+                    value={newCollegeClass}
+                    onChange={(e) => setNewCollegeClass(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && addClass("college")}
+                    className="max-w-xs"
+                  />
+                  <Button onClick={() => addClass("college")} size="sm">
+                    <Plus className="h-4 w-4 mr-1" />
+                    Ajouter
+                  </Button>
+                </div>
+              </div>
+
+              {/* Classes Lycée */}
+              <div className="space-y-3">
+                <Label className="text-base font-semibold">Lycée</Label>
+                <div className="flex flex-wrap gap-2">
+                  {classes.lycee.map((className) => (
+                    <Badge key={className} variant="secondary" className="flex items-center gap-1 py-1 px-3">
+                      {className}
+                      <button
+                        onClick={() => removeClass("lycee", className)}
+                        className="ml-1 hover:text-destructive transition-colors"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Nouvelle classe (ex: 1ère C)"
+                    value={newLyceeClass}
+                    onChange={(e) => setNewLyceeClass(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && addClass("lycee")}
+                    className="max-w-xs"
+                  />
+                  <Button onClick={() => addClass("lycee")} size="sm">
+                    <Plus className="h-4 w-4 mr-1" />
+                    Ajouter
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
