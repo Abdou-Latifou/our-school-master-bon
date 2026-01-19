@@ -7,7 +7,9 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Building, Check, Globe, Lock, Palette, Save, Shield, Users, GraduationCap, Plus, X, Upload, Image } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Building, Check, Globe, Lock, Palette, Save, Shield, Users, GraduationCap, Plus, X, Upload, Image, ChevronDown } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
@@ -32,6 +34,9 @@ const Settings = () => {
   const [newLyceeClass, setNewLyceeClass] = useState("");
   const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
   const [schoolDisplayName, setSchoolDisplayName] = useState("OurSchool");
+  const [classesOpen, setClassesOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [classToDelete, setClassToDelete] = useState<{ level: "college" | "lycee"; className: string } | null>(null);
   
   const { settings, updateSettings, primaryColors } = useTheme();
 
@@ -151,16 +156,24 @@ const Settings = () => {
     });
   };
 
-  const removeClass = (level: "college" | "lycee", className: string) => {
+  const confirmRemoveClass = (level: "college" | "lycee", className: string) => {
+    setClassToDelete({ level, className });
+    setDeleteDialogOpen(true);
+  };
+
+  const removeClass = () => {
+    if (!classToDelete) return;
     const newClasses = {
       ...classes,
-      [level]: classes[level].filter(c => c !== className)
+      [classToDelete.level]: classes[classToDelete.level].filter(c => c !== classToDelete.className)
     };
     saveClasses(newClasses);
     toast({
       title: "Classe supprimée",
-      description: `La classe "${className}" a été supprimée`
+      description: `La classe "${classToDelete.className}" a été supprimée`
     });
+    setDeleteDialogOpen(false);
+    setClassToDelete(null);
   };
 
   const handleSave = () => {
@@ -377,79 +390,108 @@ const Settings = () => {
 
           {/* Gestion des classes */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <GraduationCap className="h-5 w-5" />
-                Classes disponibles
-              </CardTitle>
-              <CardDescription>
-                Gérez les classes de votre établissement (Collège et Lycée)
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Classes Collège */}
-              <div className="space-y-3">
-                <Label className="text-base font-semibold">Collège</Label>
-                <div className="flex flex-wrap gap-2">
-                  {classes.college.map((className) => (
-                    <Badge key={className} variant="secondary" className="flex items-center gap-1 py-1 px-3">
-                      {className}
-                      <button
-                        onClick={() => removeClass("college", className)}
-                        className="ml-1 hover:text-destructive transition-colors"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Nouvelle classe (ex: 6ème D)"
-                    value={newCollegeClass}
-                    onChange={(e) => setNewCollegeClass(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && addClass("college")}
-                    className="max-w-xs"
-                  />
-                  <Button onClick={() => addClass("college")} size="sm">
-                    <Plus className="h-4 w-4 mr-1" />
-                    Ajouter
-                  </Button>
-                </div>
-              </div>
+            <Collapsible open={classesOpen} onOpenChange={setClassesOpen}>
+              <CollapsibleTrigger asChild>
+                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors rounded-t-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <GraduationCap className="h-5 w-5" />
+                        Classes disponibles
+                      </CardTitle>
+                      <CardDescription>
+                        Gérez les classes de votre établissement (Collège et Lycée)
+                      </CardDescription>
+                    </div>
+                    <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", classesOpen && "rotate-180")} />
+                  </div>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="space-y-6">
+                  {/* Classes Collège */}
+                  <div className="space-y-3">
+                    <Label className="text-base font-semibold">Collège</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {classes.college.map((className) => (
+                        <Badge key={className} variant="secondary" className="flex items-center gap-1 py-1 px-3">
+                          {className}
+                          <button
+                            onClick={() => confirmRemoveClass("college", className)}
+                            className="ml-1 hover:text-destructive transition-colors"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Nouvelle classe (ex: 6ème D)"
+                        value={newCollegeClass}
+                        onChange={(e) => setNewCollegeClass(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && addClass("college")}
+                        className="max-w-xs"
+                      />
+                      <Button onClick={() => addClass("college")} size="sm">
+                        <Plus className="h-4 w-4 mr-1" />
+                        Ajouter
+                      </Button>
+                    </div>
+                  </div>
 
-              {/* Classes Lycée */}
-              <div className="space-y-3">
-                <Label className="text-base font-semibold">Lycée</Label>
-                <div className="flex flex-wrap gap-2">
-                  {classes.lycee.map((className) => (
-                    <Badge key={className} variant="secondary" className="flex items-center gap-1 py-1 px-3">
-                      {className}
-                      <button
-                        onClick={() => removeClass("lycee", className)}
-                        className="ml-1 hover:text-destructive transition-colors"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Nouvelle classe (ex: 1ère C)"
-                    value={newLyceeClass}
-                    onChange={(e) => setNewLyceeClass(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && addClass("lycee")}
-                    className="max-w-xs"
-                  />
-                  <Button onClick={() => addClass("lycee")} size="sm">
-                    <Plus className="h-4 w-4 mr-1" />
-                    Ajouter
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
+                  {/* Classes Lycée */}
+                  <div className="space-y-3">
+                    <Label className="text-base font-semibold">Lycée</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {classes.lycee.map((className) => (
+                        <Badge key={className} variant="secondary" className="flex items-center gap-1 py-1 px-3">
+                          {className}
+                          <button
+                            onClick={() => confirmRemoveClass("lycee", className)}
+                            className="ml-1 hover:text-destructive transition-colors"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Nouvelle classe (ex: 1ère C)"
+                        value={newLyceeClass}
+                        onChange={(e) => setNewLyceeClass(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && addClass("lycee")}
+                        className="max-w-xs"
+                      />
+                      <Button onClick={() => addClass("lycee")} size="sm">
+                        <Plus className="h-4 w-4 mr-1" />
+                        Ajouter
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
           </Card>
+
+          {/* Dialog de confirmation de suppression */}
+          <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Êtes-vous sûr de vouloir supprimer la classe "{classToDelete?.className}" ? Cette action est irréversible.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setClassToDelete(null)}>Annuler</AlertDialogCancel>
+                <AlertDialogAction onClick={removeClass} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Supprimer
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
 
           <Card>
             <CardHeader>
