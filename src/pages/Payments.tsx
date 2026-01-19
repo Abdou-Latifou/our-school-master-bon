@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,8 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { CreditCard, Download, Euro, FileText, Plus, Search, TrendingUp } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useSchoolClasses } from "@/hooks/useSchoolClasses";
 
 const Payments = () => {
+  const { allClasses: allClassesList } = useSchoolClasses();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [selectedClass, setSelectedClass] = useState("all");
@@ -266,12 +268,9 @@ const Payments = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Toutes les classes</SelectItem>
-                  <SelectItem value="6ème A">6ème A</SelectItem>
-                  <SelectItem value="6ème B">6ème B</SelectItem>
-                  <SelectItem value="5ème A">5ème A</SelectItem>
-                  <SelectItem value="5ème B">5ème B</SelectItem>
-                  <SelectItem value="4ème A">4ème A</SelectItem>
-                  <SelectItem value="3ème A">3ème A</SelectItem>
+                  {allClassesList.map((cls) => (
+                    <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

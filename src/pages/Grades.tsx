@@ -56,6 +56,7 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { useSchoolClasses } from "@/hooks/useSchoolClasses";
 
 const subjects = [
   { id: 1, name: "Mathématiques", coefficient: 4 },
@@ -65,21 +66,6 @@ const subjects = [
   { id: 5, name: "Anglais", coefficient: 2 },
   { id: 6, name: "SVT", coefficient: 2 }
 ];
-
-// Classes disponibles (synchronized with Students page)
-const allClasses = {
-  college: [
-    "6ème A", "6ème B", "6ème C",
-    "5ème A", "5ème B", "5ème C", 
-    "4ème A", "4ème B", "4ème C",
-    "3ème A", "3ème B", "3ème C"
-  ],
-  lycee: [
-    "Seconde A4", "Seconde CD",
-    "1ère A4", "1ère D",
-    "Tle A4", "Tle D"
-  ]
-};
 
 const initialStudentGrades = [
   {
@@ -161,8 +147,9 @@ interface StudentGradeData {
 
 export default function Grades() {
   const { toast } = useToast();
+  const { classes: allClasses, collegeClasses, lyceeClasses } = useSchoolClasses();
   const [schoolLevel, setSchoolLevel] = useState<"college" | "lycee">("college");
-  const [selectedClass, setSelectedClass] = useState("6ème A");
+  const [selectedClass, setSelectedClass] = useState("all");
   const [selectedSubject, setSelectedSubject] = useState("Mathématiques");
   const [selectedPeriod, setSelectedPeriod] = useState<"trimestre1" | "trimestre2" | "trimestre3">("trimestre1");
   const [editMode, setEditMode] = useState(false);

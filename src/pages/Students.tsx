@@ -58,6 +58,7 @@ import {
   X
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useSchoolClasses } from "@/hooks/useSchoolClasses";
 
 // Fonction pour générer un matricule unique
 const generateMatricule = (existingMatricules: string[]) => {
@@ -73,23 +74,9 @@ const generateMatricule = (existingMatricules: string[]) => {
   return matricule;
 };
 
-// Classes disponibles
-const allClasses = {
-  college: [
-    "6ème A", "6ème B", "6ème C",
-    "5ème A", "5ème B", "5ème C", 
-    "4ème A", "4ème B", "4ème C",
-    "3ème A", "3ème B", "3ème C"
-  ],
-  lycee: [
-    "Seconde A4", "Seconde CD",
-    "1ère A4", "1ère D",
-    "Tle A4", "Tle D"
-  ]
-};
-
 export default function Students() {
   const { toast } = useToast();
+  const { classes: allClasses } = useSchoolClasses();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClass, setSelectedClass] = useState("all");
   const [selectedLevel, setSelectedLevel] = useState("all"); // Nouveau filtre pour le niveau
@@ -489,29 +476,13 @@ export default function Students() {
                     </SelectTrigger>
                     <SelectContent>
                       {schoolType === 'college' ? (
-                        <>
-                          <SelectItem value="6ème A">6ème A</SelectItem>
-                          <SelectItem value="6ème B">6ème B</SelectItem>
-                          <SelectItem value="6ème C">6ème C</SelectItem>
-                          <SelectItem value="5ème A">5ème A</SelectItem>
-                          <SelectItem value="5ème B">5ème B</SelectItem>
-                          <SelectItem value="5ème C">5ème C</SelectItem>
-                          <SelectItem value="4ème A">4ème A</SelectItem>
-                          <SelectItem value="4ème B">4ème B</SelectItem>
-                          <SelectItem value="4ème C">4ème C</SelectItem>
-                          <SelectItem value="3ème A">3ème A</SelectItem>
-                          <SelectItem value="3ème B">3ème B</SelectItem>
-                          <SelectItem value="3ème C">3ème C</SelectItem>
-                        </>
+                        allClasses.college.map((cls) => (
+                          <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+                        ))
                       ) : schoolType === 'lycee' ? (
-                        <>
-                          <SelectItem value="Seconde A4">Seconde A4</SelectItem>
-                          <SelectItem value="Seconde CD">Seconde CD</SelectItem>
-                          <SelectItem value="1ère A4">1ère A4</SelectItem>
-                          <SelectItem value="1ère D">1ère D</SelectItem>
-                          <SelectItem value="Tle A4">Tle A4</SelectItem>
-                          <SelectItem value="Tle D">Tle D</SelectItem>
-                        </>
+                        allClasses.lycee.map((cls) => (
+                          <SelectItem key={cls} value={cls}>{cls}</SelectItem>
+                        ))
                       ) : null}
                     </SelectContent>
                   </Select>

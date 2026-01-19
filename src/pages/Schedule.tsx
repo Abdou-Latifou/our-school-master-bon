@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Calendar, Clock, Edit, Plus, Printer, Users, X, Save } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useSchoolClasses } from "@/hooks/useSchoolClasses";
 
 interface Course {
   subject: string;
@@ -21,7 +22,8 @@ interface ScheduleData {
 }
 
 const Schedule = () => {
-  const [selectedClass, setSelectedClass] = useState("6ème A");
+  const { collegeClasses, lyceeClasses } = useSchoolClasses();
+  const [selectedClass, setSelectedClass] = useState("");
   const [schoolLevel, setSchoolLevel] = useState<"college" | "lycee">("college");
   const [viewMode, setViewMode] = useState("week");
   const [isEditing, setIsEditing] = useState(false);
@@ -29,20 +31,14 @@ const Schedule = () => {
   const [selectedCell, setSelectedCell] = useState<{ day: string; slot: string } | null>(null);
   const [courseForm, setCourseForm] = useState<Course>({ subject: "", teacher: "", room: "" });
 
-  const collegeClasses = [
-    "6ème A", "6ème B", "6ème C", "6ème D",
-    "5ème A", "5ème B", "5ème C", "5ème D",
-    "4ème A", "4ème B", "4ème C", "4ème D",
-    "3ème A", "3ème B", "3ème C", "3ème D"
-  ];
-
-  const lyceeClasses = [
-    "Seconde A4", "Seconde CD",
-    "1ère A4", "1ère D",
-    "Tle A4", "Tle D"
-  ];
-
   const availableClasses = schoolLevel === "college" ? collegeClasses : lyceeClasses;
+  
+  // Initialiser la classe sélectionnée quand les classes changent
+  useEffect(() => {
+    if (availableClasses.length > 0 && !availableClasses.includes(selectedClass)) {
+      setSelectedClass(availableClasses[0]);
+    }
+  }, [availableClasses, selectedClass]);
 
   const timeSlots = [
     "08:00 - 09:00",
