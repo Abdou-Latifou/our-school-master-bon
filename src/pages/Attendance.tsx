@@ -45,12 +45,7 @@ import {
   Search
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-// Classes par niveau
-const allClasses: Record<string, string[]> = {
-  college: ["6ème A", "6ème B", "5ème A", "5ème B", "4ème A", "4ème B", "3ème A", "3ème B"],
-  lycee: ["2nde A", "2nde B", "1ère A", "1ère B", "Tle A", "Tle B", "Tle C", "Tle D"]
-};
+import { useSchoolClasses } from "@/hooks/useSchoolClasses";
 
 // Données initiales des élèves (simulées)
 const initialStudentsData = [
@@ -64,8 +59,9 @@ const initialStudentsData = [
 
 export default function Attendance() {
   const { toast } = useToast();
+  const { classes: allClasses } = useSchoolClasses();
   const [schoolLevel, setSchoolLevel] = useState<"college" | "lycee">("college");
-  const [selectedClass, setSelectedClass] = useState("3ème A");
+  const [selectedClass, setSelectedClass] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [addStudentDialogOpen, setAddStudentDialogOpen] = useState(false);

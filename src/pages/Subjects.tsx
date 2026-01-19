@@ -38,6 +38,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useSchoolClasses } from "@/hooks/useSchoolClasses";
 import {
   Plus,
   Edit,
@@ -78,11 +79,6 @@ const defaultCategories = [
   "Sciences Humaines",
 ];
 
-const allClasses = {
-  college: ["6ème", "5ème", "4ème", "3ème"],
-  lycee: ["2nde", "1ère", "Terminale"],
-};
-
 const defaultSubjects: Subject[] = [
   { id: "1", name: "Mathématiques", coefficient: 4, hoursPerWeek: 5, teacher: "", category: "Sciences", description: "Algèbre, géométrie, analyse" },
   { id: "2", name: "Français", coefficient: 4, hoursPerWeek: 5, teacher: "", category: "Langues", description: "Grammaire, littérature, expression" },
@@ -98,8 +94,9 @@ const defaultSubjects: Subject[] = [
 
 const Subjects = () => {
   const { toast } = useToast();
+  const { classes: allClasses } = useSchoolClasses();
   const [schoolLevel, setSchoolLevel] = useState<"college" | "lycee">("college");
-  const [selectedClass, setSelectedClass] = useState(allClasses.college[0]);
+  const [selectedClass, setSelectedClass] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -139,10 +136,13 @@ const Subjects = () => {
     }
   }, []);
 
-  // Update selected class when school level changes
+  // Update selected class when school level changes or classes change
   useEffect(() => {
-    setSelectedClass(allClasses[schoolLevel][0]);
-  }, [schoolLevel]);
+    const classes = allClasses[schoolLevel];
+    if (classes.length > 0 && !classes.includes(selectedClass)) {
+      setSelectedClass(classes[0]);
+    }
+  }, [schoolLevel, allClasses, selectedClass]);
 
   const currentClassData = classSubjectsData.find(
     (c) => c.className === selectedClass && c.schoolLevel === schoolLevel

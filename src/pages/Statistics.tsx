@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart3, Download, FileText, TrendingUp, Users, GraduationCap, RefreshCw, Loader2 } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { toast } from "@/hooks/use-toast";
+import { useSchoolClasses } from "@/hooks/useSchoolClasses";
 
 // Types pour les données
 interface Student {
@@ -71,6 +72,7 @@ const periodConfig = {
 };
 
 const Statistics = () => {
+  const { collegeClasses, lyceeClasses } = useSchoolClasses();
   const [selectedPeriodType, setSelectedPeriodType] = useState<"trimester" | "semester" | "year">("trimester");
   const [selectedPeriodValue, setSelectedPeriodValue] = useState("1");
   const [selectedYear, setSelectedYear] = useState("2024-2025");

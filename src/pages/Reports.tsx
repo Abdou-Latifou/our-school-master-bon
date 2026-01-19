@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Download, FileText, Filter, Printer, Search, School, GraduationCap, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useSchoolClasses } from "@/hooks/useSchoolClasses";
 
 interface Student {
   id: number;
@@ -69,6 +70,7 @@ interface SubjectData {
 }
 
 const Reports = () => {
+  const { collegeClasses, lyceeClasses, allClasses: allClassesList } = useSchoolClasses();
   const [schoolLevel, setSchoolLevel] = useState<"college" | "lycee">("college");
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState("Trimestre 1");
@@ -81,20 +83,6 @@ const Reports = () => {
   const [bulletins, setBulletins] = useState<BulletinData[]>([]);
   const [controles, setControles] = useState<Controle[]>([]);
   const [subjectCoefficients, setSubjectCoefficients] = useState<Record<string, number>>({});
-
-  // Classes du collège et du lycée
-  const collegeClasses = [
-    "6ème A", "6ème B", "6ème C",
-    "5ème A", "5ème B", "5ème C",
-    "4ème A", "4ème B", "4ème C",
-    "3ème A", "3ème B", "3ème C"
-  ];
-
-  const lyceeClasses = [
-    "Seconde A4", "Seconde CD",
-    "1ère A4", "1ère D",
-    "Tle A4", "Tle D"
-  ];
 
   const availableClasses = schoolLevel === "college" ? collegeClasses : lyceeClasses;
 

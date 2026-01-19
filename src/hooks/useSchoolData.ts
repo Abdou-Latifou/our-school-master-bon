@@ -30,10 +30,23 @@ interface Payment {
   status: string;
 }
 
-// Classes par niveau
-const allClasses = {
-  college: ["6ème A", "6ème B", "6ème C", "5ème A", "5ème B", "5ème C", "4ème A", "4ème B", "4ème C", "3ème A", "3ème B", "3ème C"],
-  lycee: ["Seconde A4", "Seconde CD", "1ère A4", "1ère D", "Tle A4", "Tle D"]
+// Classes par niveau - chargées dynamiquement depuis localStorage
+const getSchoolClasses = () => {
+  const saved = localStorage.getItem("schoolClasses");
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return {
+        college: ["6ème A", "6ème B", "6ème C", "5ème A", "5ème B", "5ème C", "4ème A", "4ème B", "4ème C", "3ème A", "3ème B", "3ème C"],
+        lycee: ["Seconde A4", "Seconde CD", "1ère A4", "1ère D", "Tle A4", "Tle D"]
+      };
+    }
+  }
+  return {
+    college: ["6ème A", "6ème B", "6ème C", "5ème A", "5ème B", "5ème C", "4ème A", "4ème B", "4ème C", "3ème A", "3ème B", "3ème C"],
+    lycee: ["Seconde A4", "Seconde CD", "1ère A4", "1ère D", "Tle A4", "Tle D"]
+  };
 };
 
 // Coefficients des matières
@@ -87,6 +100,7 @@ export const useSchoolData = () => {
     const active = students.filter(s => s.status === 'active').length;
     
     // Compter par niveau
+    const allClasses = getSchoolClasses();
     const collegeStudents = students.filter(s => allClasses.college.includes(s.class));
     const lyceeStudents = students.filter(s => allClasses.lycee.includes(s.class));
     
