@@ -43,14 +43,15 @@ const menuItems = [
 const gestionSubItems = [
   { icon: Users, label: "Élèves", path: "/students" },
   { icon: UserCog, label: "Personnel", path: "/staff" },
-  { icon: Calendar, label: "Emplois du temps", path: "/schedule" },
+  { icon: BookOpen, label: "Matières", path: "/subjects" },
 ];
 
 // Items après le menu Gestion
 const menuItemsAfterGestion = [
-  { icon: BookOpen, label: "Notes & Matières", path: "/grades" },
+  { icon: BookOpen, label: "Notes", path: "/grades" },
   { icon: ClipboardList, label: "Bulletins", path: "/reports" },
   { icon: UserCheck, label: "Absences", path: "/attendance" },
+  { icon: Calendar, label: "Emplois du temps", path: "/schedule" },
   { icon: CreditCard, label: "Paiements", path: "/payments" },
   { icon: Library, label: "Bibliothèque", path: "/library" },
   { icon: Package, label: "Matériel", path: "/equipment" },
