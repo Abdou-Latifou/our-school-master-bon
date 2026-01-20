@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Building, Check, Globe, Lock, Palette, Save, Shield, Users, GraduationCap, Plus, X, Upload, Image, ChevronDown } from "lucide-react";
+import { Building, Check, Globe, Lock, Palette, Save, Shield, Users, GraduationCap, Plus, X, Upload, Image, ChevronDown, DoorOpen } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,14 @@ const defaultClasses: ClassesConfig = {
   lycee: ["Seconde A4", "Seconde CD", "1ère A4", "1ère D", "Tle A4", "Tle D"]
 };
 
+const defaultRooms: string[] = [
+  "A101", "A102", "A103", "A104",
+  "B201", "B202", "B203", "B204",
+  "C301", "C302", "C303",
+  "Lab 1", "Lab 2", "Lab Informatique",
+  "Gymnase", "CDI", "Salle de musique", "Salle d'arts plastiques"
+];
+
 const Settings = () => {
   const [schoolName, setSchoolName] = useState("École Saint-Exupéry");
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -37,6 +45,13 @@ const Settings = () => {
   const [classesOpen, setClassesOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [classToDelete, setClassToDelete] = useState<{ level: "college" | "lycee"; className: string } | null>(null);
+  
+  // State pour les salles
+  const [rooms, setRooms] = useState<string[]>(defaultRooms);
+  const [newRoom, setNewRoom] = useState("");
+  const [roomsOpen, setRoomsOpen] = useState(false);
+  const [deleteRoomDialogOpen, setDeleteRoomDialogOpen] = useState(false);
+  const [roomToDelete, setRoomToDelete] = useState<string | null>(null);
   
   const { settings, updateSettings, primaryColors } = useTheme();
 
@@ -53,6 +68,10 @@ const Settings = () => {
     const savedDisplayName = localStorage.getItem("schoolDisplayName");
     if (savedDisplayName) {
       setSchoolDisplayName(savedDisplayName);
+    }
+    const savedRooms = localStorage.getItem("schoolRooms");
+    if (savedRooms) {
+      setRooms(JSON.parse(savedRooms));
     }
   }, []);
 
@@ -174,6 +193,40 @@ const Settings = () => {
     });
     setDeleteDialogOpen(false);
     setClassToDelete(null);
+  };
+
+  // Fonctions pour gérer les salles
+  const saveRooms = (newRooms: string[]) => {
+    setRooms(newRooms);
+    localStorage.setItem("schoolRooms", JSON.stringify(newRooms));
+    window.dispatchEvent(new Event("storage"));
+  };
+
+  const addRoom = () => {
+    if (newRoom.trim() && !rooms.includes(newRoom.trim())) {
+      saveRooms([...rooms, newRoom.trim()]);
+      setNewRoom("");
+      toast({
+        title: "Salle ajoutée",
+        description: `La salle "${newRoom.trim()}" a été ajoutée`
+      });
+    }
+  };
+
+  const confirmRemoveRoom = (roomName: string) => {
+    setRoomToDelete(roomName);
+    setDeleteRoomDialogOpen(true);
+  };
+
+  const removeRoom = () => {
+    if (!roomToDelete) return;
+    saveRooms(rooms.filter(r => r !== roomToDelete));
+    toast({
+      title: "Salle supprimée",
+      description: `La salle "${roomToDelete}" a été supprimée`
+    });
+    setDeleteRoomDialogOpen(false);
+    setRoomToDelete(null);
   };
 
   const handleSave = () => {
@@ -487,6 +540,76 @@ const Settings = () => {
               <AlertDialogFooter>
                 <AlertDialogCancel onClick={() => setClassToDelete(null)}>Annuler</AlertDialogCancel>
                 <AlertDialogAction onClick={removeClass} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Supprimer
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          {/* Section Salles disponibles */}
+          <Card>
+            <Collapsible open={roomsOpen} onOpenChange={setRoomsOpen}>
+              <CollapsibleTrigger asChild>
+                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors rounded-t-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <DoorOpen className="h-5 w-5" />
+                        Salles disponibles
+                      </CardTitle>
+                      <CardDescription>
+                        Gérez les salles de votre établissement
+                      </CardDescription>
+                    </div>
+                    <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", roomsOpen && "rotate-180")} />
+                  </div>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    {rooms.map((room) => (
+                      <Badge key={room} variant="secondary" className="flex items-center gap-1 py-1 px-3">
+                        {room}
+                        <button
+                          onClick={() => confirmRemoveRoom(room)}
+                          className="ml-1 hover:text-destructive transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Nouvelle salle (ex: D101)"
+                      value={newRoom}
+                      onChange={(e) => setNewRoom(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && addRoom()}
+                      className="max-w-xs"
+                    />
+                    <Button onClick={addRoom} size="sm">
+                      <Plus className="h-4 w-4 mr-1" />
+                      Ajouter
+                    </Button>
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </Card>
+
+          {/* Dialog de confirmation pour les salles */}
+          <AlertDialog open={deleteRoomDialogOpen} onOpenChange={setDeleteRoomDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Êtes-vous sûr de vouloir supprimer la salle "{roomToDelete}" ? Cette action est irréversible.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setRoomToDelete(null)}>Annuler</AlertDialogCancel>
+                <AlertDialogAction onClick={removeRoom} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                   Supprimer
                 </AlertDialogAction>
               </AlertDialogFooter>
