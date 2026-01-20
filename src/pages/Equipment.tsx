@@ -9,8 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Package, AlertTriangle, CheckCircle, Plus, Search, Wrench } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useSchoolRooms } from "@/hooks/useSchoolRooms";
 
 const Equipment = () => {
+  const { rooms } = useSchoolRooms();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
@@ -235,7 +237,18 @@ const Equipment = () => {
                 </div>
                 <div>
                   <Label htmlFor="location">Localisation</Label>
-                  <Input id="location" placeholder="Ex: Salle informatique" />
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner une salle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {rooms.map((room) => (
+                        <SelectItem key={room} value={room}>
+                          {room}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <Button onClick={handleAddEquipment} className="w-full">
                   Ajouter à l'inventaire

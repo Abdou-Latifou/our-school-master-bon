@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Calendar, Clock, Edit, Plus, Printer, Users, X, Save } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useSchoolClasses } from "@/hooks/useSchoolClasses";
+import { useSchoolRooms } from "@/hooks/useSchoolRooms";
 
 interface Course {
   subject: string;
@@ -23,6 +24,7 @@ interface ScheduleData {
 
 const Schedule = () => {
   const { collegeClasses, lyceeClasses } = useSchoolClasses();
+  const { rooms, totalRooms } = useSchoolRooms();
   const [selectedClass, setSelectedClass] = useState("");
   const [schoolLevel, setSchoolLevel] = useState<"college" | "lycee">("college");
   const [viewMode, setViewMode] = useState("week");
@@ -299,7 +301,7 @@ const Schedule = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">18</div>
-            <p className="text-xs text-muted-foreground">Sur 25 disponibles</p>
+            <p className="text-xs text-muted-foreground">Sur {totalRooms} disponibles</p>
           </CardContent>
         </Card>
       </div>
@@ -422,12 +424,21 @@ const Schedule = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="room">Salle</Label>
-              <Input
-                id="room"
+              <Select
                 value={courseForm.room}
-                onChange={(e) => setCourseForm({ ...courseForm, room: e.target.value })}
-                placeholder="Ex: A101"
-              />
+                onValueChange={(value) => setCourseForm({ ...courseForm, room: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une salle" />
+                </SelectTrigger>
+                <SelectContent>
+                  {rooms.map((room) => (
+                    <SelectItem key={room} value={room}>
+                      {room}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter className="flex gap-2">
