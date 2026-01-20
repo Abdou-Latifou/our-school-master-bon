@@ -43,13 +43,17 @@ const menuItems = [
 const gestionSubItems = [
   { icon: Users, label: "Élèves", path: "/students" },
   { icon: UserCog, label: "Personnel", path: "/staff" },
-  { icon: BookOpen, label: "Matières", path: "/subjects" },
 ];
 
-// Items après le menu Gestion
-const menuItemsAfterGestion = [
+// Sous-menu Notes & Matières
+const notesSubItems = [
+  { icon: BookOpen, label: "Matières", path: "/subjects" },
   { icon: BookOpen, label: "Notes", path: "/grades" },
   { icon: ClipboardList, label: "Bulletins", path: "/reports" },
+];
+
+// Items après les menus déroulants
+const menuItemsAfterMenus = [
   { icon: UserCheck, label: "Absences", path: "/attendance" },
   { icon: Calendar, label: "Emplois du temps", path: "/schedule" },
   { icon: CreditCard, label: "Paiements", path: "/payments" },
@@ -64,18 +68,23 @@ export default function Layout() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [gestionOpen, setGestionOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [schoolLogo, setSchoolLogo] = useState<string | null>(null);
   const [schoolDisplayName, setSchoolDisplayName] = useState("OurSchool");
 
-  // Ouvrir automatiquement le menu Gestion si on est sur une de ses pages
+  // Ouvrir automatiquement les menus si on est sur une de leurs pages
   const isGestionPage = gestionSubItems.some(item => location.pathname === item.path);
+  const isNotesPage = notesSubItems.some(item => location.pathname === item.path);
   
   useEffect(() => {
     if (isGestionPage) {
       setGestionOpen(true);
     }
-  }, [isGestionPage]);
+    if (isNotesPage) {
+      setNotesOpen(true);
+    }
+  }, [isGestionPage, isNotesPage]);
 
   // Charger les données utilisateur
   useEffect(() => {
@@ -212,8 +221,52 @@ export default function Layout() {
                 </CollapsibleContent>
               </Collapsible>
               
-              {/* Menu items après Gestion */}
-              {menuItemsAfterGestion.map(renderMenuItem)}
+              {/* Menu Notes & Matières déroulant */}
+              <Collapsible open={notesOpen} onOpenChange={setNotesOpen}>
+                <CollapsibleTrigger asChild>
+                  <button
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors mb-1",
+                      isNotesPage
+                        ? "bg-sidebar-primary/50 text-sidebar-primary-foreground"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    )}
+                  >
+                    <BookOpen className="h-5 w-5 flex-shrink-0" />
+                    {sidebarOpen && (
+                      <>
+                        <span className="flex-1 text-left">Notes & Matières</span>
+                        <ChevronDown className={cn(
+                          "h-4 w-4 transition-transform duration-200",
+                          notesOpen && "rotate-180"
+                        )} />
+                      </>
+                    )}
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className={cn("ml-4 border-l border-sidebar-border pl-2", !sidebarOpen && "ml-0 pl-0")}>
+                    {notesSubItems.map((item) => (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors mb-1",
+                          location.pathname === item.path
+                            ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                            : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                        )}
+                      >
+                        <item.icon className="h-4 w-4 flex-shrink-0" />
+                        {sidebarOpen && <span className="text-sm">{item.label}</span>}
+                      </Link>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+              
+              {/* Menu items après les menus déroulants */}
+              {menuItemsAfterMenus.map(renderMenuItem)}
             </nav>
           </ScrollArea>
 
