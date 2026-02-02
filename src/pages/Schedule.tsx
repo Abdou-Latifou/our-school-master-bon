@@ -2,13 +2,14 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Calendar, Clock, Edit, Plus, Printer, Users, X, Save } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useSchoolClasses } from "@/hooks/useSchoolClasses";
 import { useSchoolRooms } from "@/hooks/useSchoolRooms";
+import { useSchoolSubjects } from "@/hooks/useSchoolSubjects";
+import { useSchoolTeachers } from "@/hooks/useSchoolTeachers";
 
 interface Course {
   subject: string;
@@ -25,6 +26,8 @@ interface ScheduleData {
 const Schedule = () => {
   const { collegeClasses, lyceeClasses } = useSchoolClasses();
   const { rooms, totalRooms } = useSchoolRooms();
+  const { subjects } = useSchoolSubjects();
+  const { teacherNames } = useSchoolTeachers();
   const [selectedClass, setSelectedClass] = useState("");
   const [schoolLevel, setSchoolLevel] = useState<"college" | "lycee">("college");
   const [viewMode, setViewMode] = useState("week");
@@ -406,21 +409,39 @@ const Schedule = () => {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="subject">Matière</Label>
-              <Input
-                id="subject"
+              <Select
                 value={courseForm.subject}
-                onChange={(e) => setCourseForm({ ...courseForm, subject: e.target.value })}
-                placeholder="Ex: Mathématiques"
-              />
+                onValueChange={(value) => setCourseForm({ ...courseForm, subject: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une matière" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subjects.map((subject) => (
+                    <SelectItem key={subject} value={subject}>
+                      {subject}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="teacher">Enseignant</Label>
-              <Input
-                id="teacher"
+              <Select
                 value={courseForm.teacher}
-                onChange={(e) => setCourseForm({ ...courseForm, teacher: e.target.value })}
-                placeholder="Ex: M. Dubois"
-              />
+                onValueChange={(value) => setCourseForm({ ...courseForm, teacher: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un enseignant" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teacherNames.map((teacher) => (
+                    <SelectItem key={teacher} value={teacher}>
+                      {teacher}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="room">Salle</Label>
