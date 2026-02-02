@@ -79,17 +79,35 @@ const defaultCategories = [
   "Sciences Humaines",
 ];
 
-const defaultSubjects: Subject[] = [
-  { id: "1", name: "Mathématiques", coefficient: 4, hoursPerWeek: 5, teacher: "", category: "Sciences", description: "Algèbre, géométrie, analyse" },
-  { id: "2", name: "Français", coefficient: 4, hoursPerWeek: 5, teacher: "", category: "Langues", description: "Grammaire, littérature, expression" },
-  { id: "3", name: "Anglais", coefficient: 3, hoursPerWeek: 4, teacher: "", category: "Langues", description: "Langue vivante 1" },
-  { id: "4", name: "Histoire-Géographie", coefficient: 3, hoursPerWeek: 3, teacher: "", category: "Sciences Humaines", description: "Histoire et géographie" },
-  { id: "5", name: "Physique-Chimie", coefficient: 3, hoursPerWeek: 3, teacher: "", category: "Sciences", description: "Sciences physiques" },
-  { id: "6", name: "SVT", coefficient: 2, hoursPerWeek: 2, teacher: "", category: "Sciences", description: "Sciences de la vie et de la terre" },
-  { id: "7", name: "EPS", coefficient: 2, hoursPerWeek: 2, teacher: "", category: "Sport", description: "Éducation physique et sportive" },
-  { id: "8", name: "Arts Plastiques", coefficient: 1, hoursPerWeek: 1, teacher: "", category: "Arts", description: "Expression artistique" },
-  { id: "9", name: "Musique", coefficient: 1, hoursPerWeek: 1, teacher: "", category: "Arts", description: "Éducation musicale" },
-  { id: "10", name: "Technologie", coefficient: 2, hoursPerWeek: 2, teacher: "", category: "Technologie", description: "Sciences et technologie" },
+const defaultSubjectsCollege: Subject[] = [
+  { id: "1", name: "Mathématiques", coefficient: 4, hoursPerWeek: 5, teacher: "M. Kouassi Jean", category: "Sciences", description: "Algèbre, géométrie, analyse" },
+  { id: "2", name: "Français", coefficient: 4, hoursPerWeek: 5, teacher: "Mme Koné Aminata", category: "Langues", description: "Grammaire, littérature, expression" },
+  { id: "3", name: "Anglais", coefficient: 3, hoursPerWeek: 4, teacher: "M. Yao Patrick", category: "Langues", description: "Langue vivante 1" },
+  { id: "4", name: "Histoire-Géographie", coefficient: 3, hoursPerWeek: 3, teacher: "M. Bamba Moussa", category: "Sciences Humaines", description: "Histoire et géographie" },
+  { id: "5", name: "Physique-Chimie", coefficient: 3, hoursPerWeek: 3, teacher: "M. Diallo Ibrahim", category: "Sciences", description: "Sciences physiques" },
+  { id: "6", name: "SVT", coefficient: 2, hoursPerWeek: 2, teacher: "Mme Touré Fatou", category: "Sciences", description: "Sciences de la vie et de la terre" },
+  { id: "7", name: "EPS", coefficient: 2, hoursPerWeek: 2, teacher: "M. Konaté Seydou", category: "Sport", description: "Éducation physique et sportive" },
+  { id: "8", name: "Arts Plastiques", coefficient: 1, hoursPerWeek: 1, teacher: "Mme Diabaté Awa", category: "Arts", description: "Expression artistique" },
+  { id: "9", name: "Musique", coefficient: 1, hoursPerWeek: 1, teacher: "M. Traoré Oumar", category: "Arts", description: "Éducation musicale" },
+  { id: "10", name: "Technologie", coefficient: 2, hoursPerWeek: 2, teacher: "M. Sanogo Abdoulaye", category: "Technologie", description: "Sciences et technologie" },
+  { id: "11", name: "Espagnol", coefficient: 2, hoursPerWeek: 2, teacher: "Mme Camara Mariama", category: "Langues", description: "Langue vivante 2" },
+  { id: "12", name: "Éducation Civique", coefficient: 2, hoursPerWeek: 1, teacher: "M. Ouattara Lassina", category: "Sciences Humaines", description: "Éducation à la citoyenneté" },
+];
+
+const defaultSubjectsLycee: Subject[] = [
+  { id: "1", name: "Mathématiques", coefficient: 5, hoursPerWeek: 6, teacher: "M. Coulibaly Drissa", category: "Sciences", description: "Analyse, algèbre, probabilités" },
+  { id: "2", name: "Français", coefficient: 4, hoursPerWeek: 4, teacher: "Mme Koné Aminata", category: "Langues", description: "Littérature, dissertation, commentaire" },
+  { id: "3", name: "Anglais", coefficient: 3, hoursPerWeek: 3, teacher: "M. Yao Patrick", category: "Langues", description: "Langue vivante 1" },
+  { id: "4", name: "Philosophie", coefficient: 4, hoursPerWeek: 4, teacher: "M. Dosso Karim", category: "Littérature", description: "Philosophie générale" },
+  { id: "5", name: "Histoire-Géographie", coefficient: 3, hoursPerWeek: 3, teacher: "M. Bamba Moussa", category: "Sciences Humaines", description: "Histoire et géographie" },
+  { id: "6", name: "Physique-Chimie", coefficient: 4, hoursPerWeek: 5, teacher: "M. Diallo Ibrahim", category: "Sciences", description: "Physique et chimie avancées" },
+  { id: "7", name: "SVT", coefficient: 3, hoursPerWeek: 4, teacher: "Mme Touré Fatou", category: "Sciences", description: "Biologie, géologie" },
+  { id: "8", name: "EPS", coefficient: 2, hoursPerWeek: 2, teacher: "M. Konaté Seydou", category: "Sport", description: "Éducation physique et sportive" },
+  { id: "9", name: "Espagnol", coefficient: 2, hoursPerWeek: 2, teacher: "Mme Camara Mariama", category: "Langues", description: "Langue vivante 2" },
+  { id: "10", name: "Allemand", coefficient: 2, hoursPerWeek: 2, teacher: "M. Kobenan Yves", category: "Langues", description: "Langue vivante 2" },
+  { id: "11", name: "Économie", coefficient: 3, hoursPerWeek: 3, teacher: "M. Soro Lacina", category: "Sciences Humaines", description: "Sciences économiques" },
+  { id: "12", name: "Informatique", coefficient: 2, hoursPerWeek: 2, teacher: "M. N'Guessan Koffi", category: "Technologie", description: "Programmation et bureautique" },
+  { id: "13", name: "Dessin", coefficient: 2, hoursPerWeek: 2, teacher: "Mme Diabaté Awa", category: "Arts", description: "Dessin technique et artistique" },
 ];
 
 const Subjects = () => {
@@ -122,6 +140,7 @@ const Subjects = () => {
       // Initialize with default data for all classes
       const initialData: ClassSubjects[] = [];
       Object.entries(allClasses).forEach(([level, classes]) => {
+        const defaultSubjects = level === "college" ? defaultSubjectsCollege : defaultSubjectsLycee;
         classes.forEach((className) => {
           initialData.push({
             classId: `${level}-${className}`,
