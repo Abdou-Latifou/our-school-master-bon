@@ -121,6 +121,49 @@ const Subjects = () => {
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [subjectToDelete, setSubjectToDelete] = useState<Subject | null>(null);
   const [classSubjectsData, setClassSubjectsData] = useState<ClassSubjects[]>([]);
+  const [availableSubjectsCollege, setAvailableSubjectsCollege] = useState<string[]>([]);
+  const [availableSubjectsLycee, setAvailableSubjectsLycee] = useState<string[]>([]);
+
+  // Load available subjects from Settings
+  useEffect(() => {
+    const loadSettingsSubjects = () => {
+      const savedCollege = localStorage.getItem("schoolSubjectsCollege");
+      const savedLycee = localStorage.getItem("schoolSubjectsLycee");
+      
+      if (savedCollege) {
+        setAvailableSubjectsCollege(JSON.parse(savedCollege));
+      } else {
+        // Default subjects for Collège
+        const defaultCollege = [
+          "Mathématiques", "Français", "Anglais", "Histoire-Géographie",
+          "Physique-Chimie", "SVT", "EPS", "Arts Plastiques", "Musique",
+          "Technologie", "Espagnol", "Éducation Civique"
+        ];
+        setAvailableSubjectsCollege(defaultCollege);
+      }
+      
+      if (savedLycee) {
+        setAvailableSubjectsLycee(JSON.parse(savedLycee));
+      } else {
+        // Default subjects for Lycée
+        const defaultLycee = [
+          "Mathématiques", "Français", "Anglais", "Philosophie",
+          "Histoire-Géographie", "Physique-Chimie", "SVT", "EPS",
+          "Espagnol", "Allemand", "Économie", "Informatique", "Dessin"
+        ];
+        setAvailableSubjectsLycee(defaultLycee);
+      }
+    };
+
+    loadSettingsSubjects();
+
+    // Listen for storage changes
+    const handleStorageChange = () => loadSettingsSubjects();
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
+  const availableSubjects = schoolLevel === "college" ? availableSubjectsCollege : availableSubjectsLycee;
 
   const [formData, setFormData] = useState<Omit<Subject, "id">>({
     name: "",
@@ -528,12 +571,21 @@ const Subjects = () => {
           <div className="space-y-4">
             <div>
               <Label htmlFor="name">Nom de la matière *</Label>
-              <Input
-                id="name"
+              <Select
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Ex: Mathématiques"
-              />
+                onValueChange={(v) => setFormData({ ...formData, name: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner une matière" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableSubjects.map((subject) => (
+                    <SelectItem key={subject} value={subject}>
+                      {subject}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
