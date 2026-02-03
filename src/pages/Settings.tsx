@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Building, Check, Globe, Lock, Palette, Save, Shield, Users, GraduationCap, Plus, X, Upload, Image, ChevronDown, DoorOpen } from "lucide-react";
+import { Building, Check, Globe, Lock, Palette, Save, Shield, Users, GraduationCap, Plus, X, Upload, Image, ChevronDown, DoorOpen, BookOpen } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
@@ -52,6 +52,21 @@ const Settings = () => {
   const [roomsOpen, setRoomsOpen] = useState(false);
   const [deleteRoomDialogOpen, setDeleteRoomDialogOpen] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState<string | null>(null);
+
+  // State pour les matières
+  const [subjectsOpen, setSubjectsOpen] = useState(false);
+  const [subjectsCollege, setSubjectsCollege] = useState<string[]>([
+    "Mathématiques", "Français", "Anglais", "Histoire-Géographie", "Physique-Chimie",
+    "SVT", "EPS", "Arts Plastiques", "Musique", "Technologie", "Espagnol", "Éducation Civique"
+  ]);
+  const [subjectsLycee, setSubjectsLycee] = useState<string[]>([
+    "Mathématiques", "Français", "Anglais", "Philosophie", "Histoire-Géographie",
+    "Physique-Chimie", "SVT", "EPS", "Espagnol", "Allemand", "Économie", "Informatique", "Dessin"
+  ]);
+  const [newSubjectCollege, setNewSubjectCollege] = useState("");
+  const [newSubjectLycee, setNewSubjectLycee] = useState("");
+  const [deleteSubjectDialogOpen, setDeleteSubjectDialogOpen] = useState(false);
+  const [subjectToDelete, setSubjectToDelete] = useState<{ level: "college" | "lycee"; name: string } | null>(null);
   
   const { settings, updateSettings, primaryColors } = useTheme();
 
@@ -72,6 +87,14 @@ const Settings = () => {
     const savedRooms = localStorage.getItem("schoolRooms");
     if (savedRooms) {
       setRooms(JSON.parse(savedRooms));
+    }
+    const savedSubjectsCollege = localStorage.getItem("schoolSubjectsCollege");
+    if (savedSubjectsCollege) {
+      setSubjectsCollege(JSON.parse(savedSubjectsCollege));
+    }
+    const savedSubjectsLycee = localStorage.getItem("schoolSubjectsLycee");
+    if (savedSubjectsLycee) {
+      setSubjectsLycee(JSON.parse(savedSubjectsLycee));
     }
   }, []);
 
@@ -227,6 +250,68 @@ const Settings = () => {
     });
     setDeleteRoomDialogOpen(false);
     setRoomToDelete(null);
+  };
+
+  // Fonctions pour gérer les matières
+  const saveSubjects = (level: "college" | "lycee", newSubjects: string[]) => {
+    if (level === "college") {
+      setSubjectsCollege(newSubjects);
+      localStorage.setItem("schoolSubjectsCollege", JSON.stringify(newSubjects));
+    } else {
+      setSubjectsLycee(newSubjects);
+      localStorage.setItem("schoolSubjectsLycee", JSON.stringify(newSubjects));
+    }
+    window.dispatchEvent(new Event("storage"));
+  };
+
+  const addSubject = (level: "college" | "lycee") => {
+    const newSubjectName = level === "college" ? newSubjectCollege.trim() : newSubjectLycee.trim();
+    const currentSubjects = level === "college" ? subjectsCollege : subjectsLycee;
+    
+    if (!newSubjectName) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez saisir un nom de matière",
+        variant: "destructive"
+      });
+      return;
+    }
+    if (currentSubjects.includes(newSubjectName)) {
+      toast({
+        title: "Erreur",
+        description: "Cette matière existe déjà",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    saveSubjects(level, [...currentSubjects, newSubjectName]);
+    if (level === "college") {
+      setNewSubjectCollege("");
+    } else {
+      setNewSubjectLycee("");
+    }
+    toast({
+      title: "Matière ajoutée",
+      description: `La matière "${newSubjectName}" a été ajoutée`
+    });
+  };
+
+  const confirmRemoveSubject = (level: "college" | "lycee", name: string) => {
+    setSubjectToDelete({ level, name });
+    setDeleteSubjectDialogOpen(true);
+  };
+
+  const removeSubject = () => {
+    if (!subjectToDelete) return;
+    const currentSubjects = subjectToDelete.level === "college" ? subjectsCollege : subjectsLycee;
+    saveSubjects(subjectToDelete.level, currentSubjects.filter(s => s !== subjectToDelete.name));
+    toast({
+      title: "Matière supprimée",
+      description: `La matière "${subjectToDelete.name}" a été supprimée`
+    });
+    setDeleteSubjectDialogOpen(false);
+    setSubjectToDelete(null);
   };
 
   const handleSave = () => {
@@ -610,6 +695,111 @@ const Settings = () => {
               <AlertDialogFooter>
                 <AlertDialogCancel onClick={() => setRoomToDelete(null)}>Annuler</AlertDialogCancel>
                 <AlertDialogAction onClick={removeRoom} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Supprimer
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          {/* Section Matières */}
+          <Card>
+            <Collapsible open={subjectsOpen} onOpenChange={setSubjectsOpen}>
+              <CollapsibleTrigger asChild>
+                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors rounded-t-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <BookOpen className="h-5 w-5" />
+                        Matières disponibles
+                      </CardTitle>
+                      <CardDescription>
+                        Gérez les matières par niveau (Collège et Lycée)
+                      </CardDescription>
+                    </div>
+                    <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", subjectsOpen && "rotate-180")} />
+                  </div>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="space-y-6">
+                  {/* Matières Collège */}
+                  <div className="space-y-3">
+                    <Label className="text-base font-semibold">Collège</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {subjectsCollege.map((subject) => (
+                        <Badge key={subject} variant="secondary" className="flex items-center gap-1 py-1 px-3">
+                          {subject}
+                          <button
+                            onClick={() => confirmRemoveSubject("college", subject)}
+                            className="ml-1 hover:text-destructive transition-colors"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Nouvelle matière (ex: Latin)"
+                        value={newSubjectCollege}
+                        onChange={(e) => setNewSubjectCollege(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && addSubject("college")}
+                        className="max-w-xs"
+                      />
+                      <Button onClick={() => addSubject("college")} size="sm">
+                        <Plus className="h-4 w-4 mr-1" />
+                        Ajouter
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Matières Lycée */}
+                  <div className="space-y-3">
+                    <Label className="text-base font-semibold">Lycée</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {subjectsLycee.map((subject) => (
+                        <Badge key={subject} variant="secondary" className="flex items-center gap-1 py-1 px-3">
+                          {subject}
+                          <button
+                            onClick={() => confirmRemoveSubject("lycee", subject)}
+                            className="ml-1 hover:text-destructive transition-colors"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Nouvelle matière (ex: Géopolitique)"
+                        value={newSubjectLycee}
+                        onChange={(e) => setNewSubjectLycee(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && addSubject("lycee")}
+                        className="max-w-xs"
+                      />
+                      <Button onClick={() => addSubject("lycee")} size="sm">
+                        <Plus className="h-4 w-4 mr-1" />
+                        Ajouter
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Collapsible>
+          </Card>
+
+          {/* Dialog de confirmation pour les matières */}
+          <AlertDialog open={deleteSubjectDialogOpen} onOpenChange={setDeleteSubjectDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Êtes-vous sûr de vouloir supprimer la matière "{subjectToDelete?.name}" ? Cette action est irréversible.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setSubjectToDelete(null)}>Annuler</AlertDialogCancel>
+                <AlertDialogAction onClick={removeSubject} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                   Supprimer
                 </AlertDialogAction>
               </AlertDialogFooter>
