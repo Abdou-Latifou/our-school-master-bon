@@ -39,6 +39,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useSchoolClasses } from "@/hooks/useSchoolClasses";
+import { useSchoolTeachers } from "@/hooks/useSchoolTeachers";
 import {
   Plus,
   Edit,
@@ -113,6 +114,7 @@ const defaultSubjectsLycee: Subject[] = [
 const Subjects = () => {
   const { toast } = useToast();
   const { classes: allClasses } = useSchoolClasses();
+  const { teacherNames } = useSchoolTeachers();
   const [schoolLevel, setSchoolLevel] = useState<"college" | "lycee">("college");
   const [selectedClass, setSelectedClass] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -635,12 +637,21 @@ const Subjects = () => {
             </div>
             <div>
               <Label htmlFor="teacher">Professeur</Label>
-              <Input
-                id="teacher"
+              <Select
                 value={formData.teacher}
-                onChange={(e) => setFormData({ ...formData, teacher: e.target.value })}
-                placeholder="Ex: M. Dupont"
-              />
+                onValueChange={(v) => setFormData({ ...formData, teacher: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sélectionner un professeur" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teacherNames.map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label htmlFor="description">Description</Label>
