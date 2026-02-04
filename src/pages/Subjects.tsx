@@ -228,7 +228,23 @@ const Subjects = () => {
       return;
     }
 
-    const updatedData = classSubjectsData.map((classData) => {
+    let updatedData = [...classSubjectsData];
+    
+    // Check if the class exists in the data, if not create it
+    const classExists = updatedData.some(
+      (c) => c.className === selectedClass && c.schoolLevel === schoolLevel
+    );
+    
+    if (!classExists) {
+      updatedData.push({
+        classId: `${schoolLevel}-${selectedClass}`,
+        className: selectedClass,
+        schoolLevel: schoolLevel,
+        subjects: [],
+      });
+    }
+
+    updatedData = updatedData.map((classData) => {
       if (classData.className === selectedClass && classData.schoolLevel === schoolLevel) {
         if (editingSubject) {
           // Update existing
@@ -255,6 +271,9 @@ const Subjects = () => {
 
     setClassSubjectsData(updatedData);
     localStorage.setItem("classSubjectsData", JSON.stringify(updatedData));
+    
+    // Dispatch storage event to notify other components
+    window.dispatchEvent(new Event("storage"));
     
     // Also update the global subject coefficients for grades
     updateGlobalSubjectCoefficients(updatedData);
